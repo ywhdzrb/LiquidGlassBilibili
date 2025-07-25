@@ -1,9 +1,6 @@
-qt_builder.json
-moc_temp/
-obj/
 build/
 dist/
-*spec
 test.*
-__pycache__/
+__pycache__/*
 blibiliunpacked/*
+.css
