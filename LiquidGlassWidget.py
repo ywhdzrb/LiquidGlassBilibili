@@ -3,24 +3,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QGraphic
 from PyQt5.QtCore import Qt, QRectF, QPoint, QSize
 from PyQt5.QtGui import QPainter, QLinearGradient, QColor, QPainterPath, QRegion, QPen, QBrush, QFont, QCursor
 
-class TransparentGlassWindow(QWidget):
-    """
-    一个可拖动的超透明玻璃效果窗口类
-    
-    使用方法:
-    1. 直接创建窗口并添加内容:
-        window = TransparentGlassWindow()
-        window.setTitle("我的窗口")
-        window.addWidget(QLabel("自定义内容"))
-        window.show()
-    
-    2. 继承并自定义:
-        class MyGlassWindow(TransparentGlassWindow):
-            def __init__(self):
-                super().__init__()
-                self.setTitle("自定义窗口")
-                self.addWidget(QLabel("自定义内容"))
-    """
+class LiquidGlassWidget(QWidget):
     
     def __init__(self, parent=None, title="透明玻璃窗口", size=(320, 150), position=(100, 100)):
         """
@@ -41,59 +24,8 @@ class TransparentGlassWindow(QWidget):
         self._glass_margin = 8
         self._glass_radius = 15
         
-        # 初始化UI
-        self.initUI()
-        
-        # 拖动相关变量
-        self.dragging = False
-        self.drag_position = QPoint()
+    
 
-    def initUI(self):
-        """初始化用户界面"""
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        
-        # 设置窗口大小
-        self.setFixedSize(self._size)
-        
-        # 确保窗口在屏幕范围内
-        screen_geo = QApplication.primaryScreen().availableGeometry()
-        x = max(screen_geo.left(), min(self._position[0], screen_geo.right() - self.width()))
-        y = max(screen_geo.top(), min(self._position[1], screen_geo.bottom() - self.height()))
-        self.move(x, y)
-        
-        # 设置圆角区域以实现透明效果
-        self.setMask(self.create_rounded_mask(radius=self._radius))
-        
-        # 创建布局和内容容器
-        self.content_layout = QVBoxLayout()
-        self.content_layout.setContentsMargins(20, 20, 20, 20)
-        self.content_layout.setSpacing(10)
-        
-        # 标题标签
-        self.title_label = QLabel(self._title, self)
-        self.title_label.setAlignment(Qt.AlignCenter)
-        title_font = QFont("微软雅黑", 16, QFont.Bold)
-        self.title_label.setFont(title_font)
-        self.title_label.setStyleSheet("color: rgba(255, 255, 255, 220); background-color: transparent;")
-        
-        # 添加标题阴影
-        title_shadow = QGraphicsDropShadowEffect()
-        title_shadow.setBlurRadius(2)
-        title_shadow.setColor(QColor(0, 0, 0, 80))
-        title_shadow.setOffset(1, 1)
-        self.title_label.setGraphicsEffect(title_shadow)
-        
-        # 添加标题到布局
-        self.content_layout.addWidget(self.title_label)
-        
-        # 创建内容容器
-        self.content_widget = QWidget(self)
-        self.content_widget.setStyleSheet("background-color: transparent;")
-        self.content_layout.addWidget(self.content_widget)
-        
-        # 设置主布局
-        self.setLayout(self.content_layout)
 
     def create_rounded_mask(self, radius=20):
         """创建圆角矩形区域蒙版"""
@@ -178,24 +110,6 @@ class TransparentGlassWindow(QWidget):
                 if widget is not None:
                     widget.deleteLater()
     
-    def mousePressEvent(self, event):
-        """鼠标按下事件 - 开始拖动"""
-        if event.button() == Qt.LeftButton:
-            self.dragging = True
-            self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
-            event.accept()
-
-    def mouseMoveEvent(self, event):
-        """鼠标移动事件 - 拖动窗口"""
-        if self.dragging and event.buttons() & Qt.LeftButton:
-            self.move(event.globalPos() - self.drag_position)
-            event.accept()
-
-    def mouseReleaseEvent(self, event):
-        """鼠标释放事件 - 停止拖动"""
-        if event.button() == Qt.LeftButton:
-            self.dragging = False
-            event.accept()
 
     def paintEvent(self, event):
         """绘制透明玻璃效果"""

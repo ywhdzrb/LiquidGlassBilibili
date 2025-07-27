@@ -13,8 +13,11 @@ from PyQt5.QtGui import (QIcon,
                          QFont)
 from PyQt5.QtCore import (Qt, 
                           QRect, 
-                          QSize)
+                          QSize,
+                          QPropertyAnimation,
+                          QEasingCurve)
 from AcrylicEffect import AcrylicEffect
+from LiquidGlassWidget import LiquidGlassWidget
 import sys
 
 class MainWindow(QMainWindow):
@@ -206,7 +209,16 @@ class MainWindow(QMainWindow):
         self.setting_text.setParent(self.sidebar)
         self.setting_text.setGeometry(QRect(14, 680, 30, 20))
 
+        # 液态玻璃蒙版
+        self.liquid_glass = LiquidGlassWidget(self)
+        self.liquid_glass.setGeometry(QRect(0, 40, 50, 60))
+        self.liquid_glass.setParent(self)
 
+        # 添加动画
+        self.liquid_animation = QPropertyAnimation(self.liquid_glass, b"geometry")
+        self.liquid_animation.setDuration(1000)  # 动画持续时间500ms
+        self.liquid_animation.setEasingCurve(QEasingCurve.OutCubic)  # 平滑缓动效果
+        
         
         # 更新
         self.update_function()
@@ -244,6 +256,11 @@ class MainWindow(QMainWindow):
 
         self.home_text.setStyleSheet("color: rgb(255,192,203); font-size: 12px; background-color: transparent;")
 
+        self.liquid_animation.stop()
+        self.liquid_animation.setStartValue(self.liquid_glass.geometry())
+        self.liquid_animation.setEndValue(QRect(0, 40, 50, 60))
+        self.liquid_animation.start()
+
     def setting_function(self):
         """设置功能"""
         setting_icon = QPixmap("./img/setting_start.png")
@@ -251,6 +268,11 @@ class MainWindow(QMainWindow):
         self.setting.setIcon(QIcon(setting_icon))
 
         self.setting_text.setStyleSheet("color: rgb(255,192,203); font-size: 12px; background-color: transparent;")
+
+        self.liquid_animation.stop()
+        self.liquid_animation.setStartValue(self.liquid_glass.geometry())
+        self.liquid_animation.setEndValue(QRect(0, 690, 50, 60))
+        self.liquid_animation.start()
 
     def resizeEvent(self, event):
         """窗口大小改变时更新效果"""
