@@ -19,10 +19,16 @@ from PyQt5.QtCore import (Qt,
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
 import sys
+import os
 
 class MainWindow(QMainWindow):
     def __init__(self, parent = None, flags = Qt.WindowFlags()):
         super().__init__(parent, flags)
+
+        # 判断temp目录是否存在
+        if not os.path.exists("temp"):
+            os.makedirs("temp")
+
         self.initUI()
     
     def initUI(self):
