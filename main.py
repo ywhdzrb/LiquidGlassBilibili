@@ -29,6 +29,11 @@ class MainWindow(QMainWindow):
         if not os.path.exists("temp"):
             os.makedirs("temp")
 
+        # 判断cookie文件是否存在
+        if not os.path.exists("Cookie"):
+            with open("Cookie", "w") as f:
+                f.write("")
+
         self.initUI()
     
     def initUI(self):
