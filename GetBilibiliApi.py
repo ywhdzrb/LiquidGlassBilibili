@@ -5,6 +5,8 @@ import ffmpeg
 import qrcode
 import requests as rq
 
+import wbiSigned as wbi
+
 
 # user_agent = "LiquidGlassBilibili Client/0.0.1 (intmainreturn@outlook.com)"
 
@@ -197,6 +199,28 @@ class Download:
         os.remove(video_save_path)
         os.remove(audio_save_path)
         print("视频合成完成:", save_path)
+    
+    def download_user_face(self, url, save_path):
+
+        cookies = {}
+        with open("Cookie", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                parts = line.split('\t')
+                if len(parts) >= 7:
+                    cookies[parts[5]] = parts[6]
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Referer": "https://www.bilibili.com/"
+        }
+
+        response = rq.get(url, headers=headers, cookies=cookies)
+        response.raise_for_status()
+        with open(save_path, "wb") as f:
+            f.write(response.content)
         
 
 class QrLogin:
@@ -312,6 +336,8 @@ if __name__ == "__main__":
     # print(video_info.get_video_info())
     # recommend = GetRecommendVideos()
     # print(recommend.get_recommend_videos())
-    # user_info = GetUserInfo()
-    # print(user_info.get_user_info())
-    Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    user_info = GetUserInfo()
+    user_data = user_info.get_user_info()
+    print(user_data)
+    Download().download_user_face(user_data["face"], "./temp/face.jpg")
+    # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
