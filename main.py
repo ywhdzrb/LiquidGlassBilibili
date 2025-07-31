@@ -62,8 +62,24 @@ class MainWindow(QMainWindow):
 
         self.acrylic_effect.set_background_image("background.jpg")  # 设置背景图片
 
-        # 设置窗口最大化
-        self.showMaximized()
+        # 设置窗口图标
+        self.setWindowIcon(QIcon("BilibiliIcon.ico"))
+
+        # 顶部窗口栏
+        self.windowbar = QWidget()
+        self.windowbar.setObjectName("windowBar")
+        self.windowbar.setFixedHeight(40)
+        self.windowbar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
+        self.windowbar.setGeometry(QRect(0, 0, self.width(), 40))
+        self.windowbar.setParent(self)
+
+        # 侧栏
+        self.sidebar = QWidget()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
+        self.sidebar.setGeometry(QRect(0, 40, 50, self.height() - 40))
+        self.sidebar.setParent(self)
+
 
         # 无边框
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -73,17 +89,7 @@ class MainWindow(QMainWindow):
         self.acrylic_effect.set_tint_strength(0.2)
         self.acrylic_effect.set_noise_strength(0.15)
         self.acrylic_effect.set_tint_color(QColor(200, 220, 255))
-
-        # 设置窗口图标
-        self.setWindowIcon(QIcon("BilibiliIcon.ico"))
-        
-        # 顶部窗口栏
-        self.windowbar = QWidget()
-        self.windowbar.setObjectName("windowBar")
-        self.windowbar.setFixedHeight(40)
-        self.windowbar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
-        self.windowbar.setGeometry(QRect(0, 0, 1365, 40))
-        self.windowbar.setParent(self)
+    
 
         # 添加logo
         self.logo = QLabel()
@@ -167,13 +173,6 @@ class MainWindow(QMainWindow):
         self.search_icon_label.setParent(self.windowbar)
         self.search_icon_label.setStyleSheet("background-color: transparent;")
 
-        # 侧栏
-        self.sidebar = QWidget()
-        self.sidebar.setObjectName("sidebar")
-        self.sidebar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
-        self.sidebar.setGeometry(QRect(0, 40, 50, 700))
-        self.sidebar.setParent(self)
-
         # 选着功能区
         self.functionnum = 1
 
@@ -234,6 +233,9 @@ class MainWindow(QMainWindow):
         
         # 更新
         self.update_function()
+
+        # 设置窗口最大化
+        self.showMaximized()
         
 
 
@@ -283,13 +285,50 @@ class MainWindow(QMainWindow):
 
         self.liquid_animation.stop()
         self.liquid_animation.setStartValue(self.liquid_glass.geometry())
-        self.liquid_animation.setEndValue(QRect(0, 690, 50, 60))
+        self.liquid_animation.setEndValue(QRect(0, self.sidebar.height() - 60, 50, 60))
         self.liquid_animation.start()
 
     def resizeEvent(self, event):
         """窗口大小改变时更新效果"""
         super().resizeEvent(event)
+        
+        
+        # 更新顶部栏
+        self.windowbar.setGeometry(0, 0, self.width(), 40)
+        
+        # 更新侧栏
+        self.sidebar.setGeometry(0, 40, 50, self.height())
+        
+        # 更新按钮位置
+        self.closebtn.setGeometry(QRect(self.windowbar.width()-40, 0, 40, 40))
+        self.minbtn.setGeometry(QRect(self.windowbar.width()-80, 0, 40, 40))
+        
+        # 更新搜索框及图标
+        self.searchbar.setGeometry(QRect(
+            (self.windowbar.width()-300)//2, 
+            5, 
+            300, 
+            30
+        ))
+        self.search_icon_label.setGeometry(QRect(
+            self.searchbar.geometry().x() + 270,
+            10,
+            20,
+            20
+        ))
+        
+        # 更新设置按钮位置
+        self.setting.setGeometry(0, self.sidebar.height() - 100, 50, 40)
+        self.setting_text.setGeometry(14, self.sidebar.height() - 70, 30, 20)
+        
+        # 更新亚克力效果
         self.acrylic_effect.apply_effect()
+        
+        # 如果当前在设置页，需要更新液态玻璃位置
+        if self.functionnum == 1:
+            self.setting_function()
+        else:
+            self.home_function()
 
         
 
