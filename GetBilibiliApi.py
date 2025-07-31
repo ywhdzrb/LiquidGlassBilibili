@@ -1,6 +1,9 @@
 import requests as rq
 import json
 import qrcode
+import ffmpeg
+import os
+import time
 
 # user_agent = "LiquidGlassBilibili Client/0.0.1 (intmainreturn@outlook.com)"
 
@@ -100,6 +103,100 @@ class Download:
         response.raise_for_status()  # 检查HTTP状态码
         with open(save_path, "wb") as f:
             f.write(response.content)
+    
+    def download_video(self, video_bvid, video_cid, save_path):
+        """下载视频到指定路径(dash)"""
+        cookies = {}
+        with open("Cookie", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                parts = line.split('\t')
+                if len(parts) >= 7:
+                    cookies[parts[5]] = parts[6]
+
+        url = f"https://api.bilibili.com/x/player/wbi/playurl?bvid={video_bvid}&cid={video_cid}&fnval=16"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Referer": "https://www.bilibili.com/"
+        }
+
+        # 获取视频信息
+        response = rq.get(url, headers=headers, cookies=cookies)
+        response.raise_for_status()
+        info = response.json()
+        
+        # 检查返回数据有效性
+        dash_data = info.get("data", {}).get("dash", {})
+        if not dash_data:
+            raise Exception("无法获取DASH格式视频信息")
+        
+        video_urls = dash_data.get("video", [])
+        audio_urls = dash_data.get("audio", [])
+        if not video_urls or not audio_urls:
+            raise Exception("视频/音频流信息不完整")
+
+        video_url = video_urls[0].get("baseUrl", "")
+        audio_url = audio_urls[0].get("baseUrl", "")
+
+        # 下载参数设置
+        max_retries = 3
+        chunk_size = 1024 * 1024  # 1MB chunks
+        video_save_path = f"./temp/{video_bvid}-video.m4s"
+        audio_save_path = f"./temp/{video_bvid}-audio.m4s"
+
+        def download_with_retry(url, save_path):
+            for attempt in range(max_retries):
+                try:
+                    with rq.get(url, headers=headers, cookies=cookies, stream=True, timeout=30) as r:
+                        r.raise_for_status()
+                        total_size = int(r.headers.get('content-length', 0))
+                        downloaded = 0
+                        
+                        with open(save_path, 'wb') as f:
+                            for chunk in r.iter_content(chunk_size=chunk_size):
+                                if chunk:
+                                    f.write(chunk)
+                                    downloaded += len(chunk)
+                                    print(f"下载进度: {downloaded}/{total_size} bytes ({downloaded/total_size:.1%})", end='\r')
+                        print()  # 换行
+                        return True
+                except (rq.exceptions.ChunkedEncodingError, 
+                       rq.exceptions.ConnectionError,
+                       rq.exceptions.Timeout) as e:
+                    print(f"下载失败 ({attempt+1}/{max_retries}): {str(e)}")
+                    time.sleep(2)
+            return False
+
+        # 下载视频流
+        print(f"开始下载视频流: {video_url}")
+        if not download_with_retry(video_url, video_save_path):
+            raise Exception("视频流下载失败")
+
+        # 下载音频流
+        print(f"\n开始下载音频流: {audio_url}")
+        if not download_with_retry(audio_url, audio_save_path):
+            raise Exception("音频流下载失败")
+
+        # 混流处理
+        print("开始混流...")
+        try:
+            video_input = ffmpeg.input(video_save_path)
+            audio_input = ffmpeg.input(audio_save_path)
+            (
+                ffmpeg
+                .output(video_input, audio_input, save_path, vcodec='copy', acodec='copy', loglevel='error')
+                .run(overwrite_output=True)
+            )
+        except ffmpeg.Error as e:
+            raise Exception(f"混流失败: {e.stderr.decode()}")
+
+        # 清理临时文件
+        os.remove(video_save_path)
+        os.remove(audio_save_path)
+        print("视频合成完成:", save_path)
+        
 
 class QrLogin:
     def __init__(self):
@@ -187,7 +284,7 @@ class GetUserInfo:
         self.info = self.info.json()
     
     def get_user_info(self):
-        info = self.info.json().get("data", {})
+        info = self.info.get("data", {})
         user_info = {
             "name": info.get("uname", ""),
             "mid": info.get("mid", 0),
@@ -214,5 +311,6 @@ if __name__ == "__main__":
     # print(video_info.get_video_info())
     # recommend = GetRecommendVideos()
     # print(recommend.get_recommend_videos())
-    user_info = GetUserInfo()
-    print(user_info.get_user_info())
+    # user_info = GetUserInfo()
+    # print(user_info.get_user_info())
+    Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
