@@ -4,7 +4,6 @@
 
 ## 运行
 ```bash
-pip install requests qrcode ffmpeg-python PyQt5
-
+pip install -r requirements.txt
 python main.py
 ```

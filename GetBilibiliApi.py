@@ -1,9 +1,10 @@
-import requests as rq
-import json
-import qrcode
-import ffmpeg
 import os
 import time
+
+import ffmpeg
+import qrcode
+import requests as rq
+
 
 # user_agent = "LiquidGlassBilibili Client/0.0.1 (intmainreturn@outlook.com)"
 

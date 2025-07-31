@@ -1,25 +1,26 @@
-from PyQt5.QtWidgets import (QApplication, 
-                             QMainWindow, 
-                             QFrame, 
-                             QVBoxLayout, 
-                             QWidget, 
-                             QPushButton,
-                             QLabel,
-                             QLineEdit)
-from PyQt5.QtGui import (QIcon, 
-                         QPixmap, 
-                         QColor, 
-                         QFontDatabase,
-                         QFont)
-from PyQt5.QtCore import (Qt, 
-                          QRect, 
+import os
+import sys
+
+from PyQt5.QtCore import (Qt,
+                          QRect,
                           QSize,
                           QPropertyAnimation,
                           QEasingCurve)
+from PyQt5.QtGui import (QIcon,
+                         QPixmap,
+                         QColor)
+from PyQt5.QtWidgets import (QApplication,
+                             QMainWindow,
+                             QFrame,
+                             QVBoxLayout,
+                             QWidget,
+                             QPushButton,
+                             QLabel,
+                             QLineEdit)
+
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
-import sys
-import os
+
 
 class MainWindow(QMainWindow):
     def __init__(self, parent = None, flags = Qt.WindowFlags()):

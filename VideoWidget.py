@@ -1,8 +1,11 @@
-from PyQt5.QtWidgets import QWidget, QLabel
-from PyQt5.QtGui import QPixmap, QPainterPath
-from PyQt5.QtCore import QRect, QSize, Qt
 import time
+
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QWidget, QLabel
+
 from LiquidGlassWidget import LiquidGlassWidget
+
 
 class VideoWidget(QWidget):
     def __init__(self, parent=None, title="", duration=0, thumbnail_path=None, upname="", release_time=0):
