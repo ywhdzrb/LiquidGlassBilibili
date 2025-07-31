@@ -1,0 +1,4 @@
+requests
+qrcode
+ffmpeg-python
+PyQt5
