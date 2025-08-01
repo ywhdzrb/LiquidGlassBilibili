@@ -1,4 +1,5 @@
 import time
+import os
 
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QPixmap
@@ -32,6 +33,16 @@ class VideoWidget(QWidget):
             self.relative_time_str = time.strftime("%m-%d", time.localtime(self.release_time))
         else:
             self.relative_time_str = time.strftime("%Y-%m-%d", time.localtime(self.release_time))
+
+        if os.path.exists(thumbnail_path):
+            thumbnail = QPixmap(thumbnail_path).scaled(
+                QSize(300, 150),
+                Qt.KeepAspectRatioByExpanding,
+                Qt.SmoothTransformation
+            )
+        else:
+            thumbnail = QPixmap(300, 150)  # 创建空图像
+            thumbnail.fill(Qt.gray)  # 填充灰色背景
 
         # 液态玻璃底板
         self.liquid_glass = LiquidGlassWidget(self)
@@ -73,19 +84,54 @@ class VideoWidget(QWidget):
 
 
     # 更改封面
-    def change_thumbnail(self, thumbnail_path):
+    def update_info(self, title="", duration=0, thumbnail_path=None, upname="", release_time=0):
+        self.title = title
+        self.duration = duration
         self.thumbnail_path = thumbnail_path
+        self.upname = upname
+        self.release_time = release_time
+
+        current_time = int(time.time())
+        relative_time = current_time - self.release_time
+        if relative_time < 24 * 3600:  # 小于24小时
+            hours = relative_time // 3600
+            self.relative_time_str = f"{hours}小时前"
+        elif self.release_time // 86400 == current_time // 86400:  # 今天
+            self.relative_time_str = time.strftime("%H:%M", time.localtime(self.release_time))
+        elif self.release_time // 31536000 == current_time // 31536000:
+            self.relative_time_str = time.strftime("%m-%d", time.localtime(self.release_time))
+        else:
+            self.relative_time_str = time.strftime("%Y-%m-%d", time.localtime(self.release_time))
+        
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            self.thumbnail_path = thumbnail_path
+            thumbnail = QPixmap(self.thumbnail_path).scaled(
+                QSize(300, 150),
+                Qt.KeepAspectRatioByExpanding,
+                Qt.SmoothTransformation
+            )
+        else:
+            # 使用默认占位图或保持原有图像
+            return  # 如果路径无效则不更新
+        
+        self.title_label.setText(self.title)
+        self.time_label.setText(f"{self.duration // 60:02}:{self.duration % 60:02}")
+        self.upname_label.setText(f"UP:{self.upname} · {self.relative_time_str}")
+
         thumbnail = QPixmap(self.thumbnail_path).scaled(
-            QSize(300, 150),
-            Qt.KeepAspectRatioByExpanding,
+            QSize(300, 150),  # 固定目标尺寸
+            Qt.KeepAspectRatioByExpanding,  # 保持宽高比并扩展填充
             Qt.SmoothTransformation
         )
+        # 创建裁剪后的缩略图
         self.thumbnail_label.setPixmap(thumbnail.copy(
-            (thumbnail.width() - 300) // 2,
-            (thumbnail.height() - 150) // 2,
+            (thumbnail.width() - 300) // 2,  # 水平居中裁剪
+            (thumbnail.height() - 150) // 2,  # 垂直居中裁剪
             300,
             150
         ))
+
+
 
 
 

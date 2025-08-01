@@ -56,7 +56,7 @@ class GetVideoInfo:
             "upname": data.get("owner", {}).get("name", ""),
             "release_time": data.get("pubdate", 0),
             "bvid": data.get("bvid", ""),
-            "avid": data.get("aid", "")
+            "avid": data.get("aid", ""),
         }
         return video_info
 
@@ -100,12 +100,18 @@ class GetRecommendVideos:
         return self.info.get("data", {}).get("item", [])
 
 class Download:
-    def download_thumbnail(self, thumbnail_url, save_path):
+    def download_thumbnail(self, thumbnail_url, save_path, max_retries=3):
         """下载视频缩略图到指定路径"""
-        response = rq.get(thumbnail_url)
-        response.raise_for_status()  # 检查HTTP状态码
-        with open(save_path, "wb") as f:
-            f.write(response.content)
+        for attempt in range(max_retries):
+            try:
+                response = rq.get(thumbnail_url, timeout=10)
+                response.raise_for_status()
+                with open(save_path, "wb") as f:
+                    f.write(response.content)
+                return True
+            except Exception as e:
+                print(f"下载失败 ({attempt+1}/{max_retries}): {str(e)}")
+        return False
     
     def download_video(self, video_bvid, video_cid, save_path):
         """下载视频到指定路径(dash)"""
@@ -331,13 +337,18 @@ class GetUserInfo:
 
 
 if __name__ == "__main__":
-    video_id = "BV1xV411d7b2"  # Example video ID
+    # video_id = "BV1xV411d7b2"  # Example video ID
     # video_info = GetVideoInfo(video_id)
     # print(video_info.get_video_info())
     # recommend = GetRecommendVideos()
     # print(recommend.get_recommend_videos())
-    user_info = GetUserInfo()
-    user_data = user_info.get_user_info()
-    print(user_data)
-    Download().download_user_face(user_data["face"], "./temp/face.jpg")
-    # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    # user_info = GetUserInfo()
+    # user_data = user_info.get_user_info()
+    # print(user_data)
+    # Download().download_user_face(user_data["face"], "./temp/face.jpg")
+    # # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    # a = QrLogin()
+    # a.get_qrcode()
+    # a.check_login()
+    print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
+    pass
