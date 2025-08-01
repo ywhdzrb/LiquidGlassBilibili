@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 
 from PyQt5.QtCore import (Qt,
                           QRect,
@@ -20,6 +21,7 @@ from PyQt5.QtWidgets import (QApplication,
 
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
+from VideoController import VideoController
 
 
 class MainWindow(QMainWindow):
@@ -230,6 +232,10 @@ class MainWindow(QMainWindow):
         self.liquid_animation.setDuration(1000)  # 动画持续时间500ms
         self.liquid_animation.setEasingCurve(QEasingCurve.OutCubic)  # 平滑缓动效果
         
+        # 视频控制器
+        self.video_controller = VideoController(self)
+        self.video_controller.setGeometry(QRect(100, 40, self.width(), self.height()))
+        self.video_controller.setParent(self)
         
         # 更新
         self.update_function()
@@ -260,6 +266,9 @@ class MainWindow(QMainWindow):
             home_icon = home_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.home.setIcon(QIcon(home_icon))
             self.home_text.setStyleSheet("color: black; font-size: 12px; background-color: transparent;")
+            # 关掉video_controller
+            # self.video_controller.hide()
+            # self.video_controller.deleteLater()
 
              
     def home_function(self):

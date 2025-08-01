@@ -9,7 +9,7 @@ from LiquidGlassWidget import LiquidGlassWidget
 
 
 class VideoWidget(QWidget):
-    def __init__(self, parent=None, title="", duration=0, thumbnail_path=None, upname="", release_time=0):
+    def __init__(self, parent=None, title="", duration=0, thumbnail_path="./img/none.png", upname="", release_time=0):
         super().__init__(parent)
 
         self.title = title
@@ -46,12 +46,12 @@ class VideoWidget(QWidget):
 
         # 液态玻璃底板
         self.liquid_glass = LiquidGlassWidget(self)
-        self.liquid_glass.setGeometry(0, 0, 300, 200)
+        self.liquid_glass.setGeometry(0, 0, 300, 210)
 
 
         # 视频缩略图标签,使用裁剪
         self.thumbnail_label = QLabel(self)
-        self.thumbnail_label.setGeometry(10, 10, 270, 150)  # 固定尺寸为300x150
+        self.thumbnail_label.setGeometry(15, 20, 270, 150)  # 固定尺寸为300x150
         
         # 使用保持宽高比的缩放并裁剪多余部分
         thumbnail = QPixmap(self.thumbnail_path).scaled(
@@ -70,26 +70,31 @@ class VideoWidget(QWidget):
         # 视频标题标签
         self.title_label = QLabel(self)
         self.title_label.setText(self.title)
-        self.title_label.setGeometry(10, 155, 300, 30)  # 调整位置和大小
+        self.title_label.setGeometry(15, 165, 300, 30)  # 调整位置和大小
 
         # 视频时间标签
         self.time_label = QLabel(self)
         self.time_label.setText(f"{self.duration // 60:02}:{self.duration % 60:02}")
-        self.time_label.setGeometry(245, 140, 300, 30)  # 调整位置和大小
+        self.time_label.setGeometry(250, 150, 300, 30)  # 调整位置和大小
 
         # UP主名称标签
         self.upname_label = QLabel(self)
         self.upname_label.setText(f"UP:{self.upname} · {self.relative_time_str}")
-        self.upname_label.setGeometry(10, 170, 300, 30)  # 调整位置和大小
+        self.upname_label.setGeometry(15, 180, 300, 30)  # 调整位置和大小
 
 
     # 更改封面
-    def update_info(self, title="", duration=0, thumbnail_path=None, upname="", release_time=0):
-        self.title = title
-        self.duration = duration
-        self.thumbnail_path = thumbnail_path
-        self.upname = upname
-        self.release_time = release_time
+    def update_info(self, title=None, duration=None, thumbnail_path=None, upname=None, release_time=None):
+        if title == None:
+            title = self.title
+        if duration == None:
+            duration = self.duration
+        if thumbnail_path == None:
+            thumbnail_path = self.thumbnail_path
+        if upname == None:
+            upname = self.upname
+        if release_time == None:
+            release_time = self.release_time
 
         current_time = int(time.time())
         relative_time = current_time - self.release_time

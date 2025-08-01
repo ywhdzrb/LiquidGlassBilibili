@@ -1,67 +1,144 @@
+from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 from VideoWidget import VideoWidget
 from GetBilibiliApi import *
-from PyQt5.QtWidgets import QWidget, QGridLayout
+import os
+import threading
+
+class DataLoaderSignals(QObject):
+    data_ready = pyqtSignal(list)
+    data_failed = pyqtSignal()
+
+class DataLoader(threading.Thread):
+    def __init__(self, page, pagesize):
+        super().__init__()
+        self.page = page
+        self.pagesize = pagesize
+        self.signals = DataLoaderSignals()
+
+    def run(self):
+        try:
+            data = GetRecommendVideos(page=self.page, pagesize=self.pagesize).get_recommend_videos()
+            if data and len(data) >= 12:
+                self.signals.data_ready.emit(data[:12])
+            else:
+                raise ValueError("推荐数据不足或格式错误")
+        except Exception as e:
+            print(f"数据加载失败: {str(e)}")
+            self.signals.data_failed.emit()
+
+class ThumbnailDownloader(threading.Thread):
+    def __init__(self, pic_url, bvid, index, controller):
+        super().__init__()
+        self.pic_url = pic_url
+        self.bvid = bvid
+        self.index = index
+        self.controller = controller
+
+    def run(self):
+        try:
+            save_path = f"./temp/{self.bvid}.jpg"
+            if Download().download_thumbnail(self.pic_url, save_path):
+                self.controller.thumbnail_loaded.emit(self.index, save_path)
+        except Exception as e:
+            print(f"缩略图下载失败: {str(e)}")
 
 class VideoController(QWidget):
+    thumbnail_loaded = pyqtSignal(int, str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._is_alive = True
+        self.download_threads = []
+        self.init_ui()
+        self.load_initial_data()
+        self.thumbnail_loaded.connect(self.update_thumbnail)
+
+    def init_ui(self):
         self.grid_layout = QGridLayout(self)
-        self.video_widgets = []
-        self.page = 1
-        self.video_info = GetRecommendVideos(page=self.page, pagesize=12).get_recommend_videos()
-        
-        # 创建12个视频组件
-        self._create_video_grid()
-        
-    def _create_video_grid(self):
-        """创建3行4列的视频网格布局"""
-        # 清空现有布局
-        while self.grid_layout.count():
-            self.grid_layout.takeAt(0)
-        
-        # 自动计算间距（保留5px的间隙）
-        self.grid_layout.setHorizontalSpacing(5)
-        self.grid_layout.setVerticalSpacing(5)
         self.grid_layout.setContentsMargins(5, 5, 5, 5)
+        self.grid_layout.setSpacing(5)
+        self.video_widgets = []
         
-        # 创建12个视频组件
-        for i in range(12):
-            row = i // 4
-            col = i % 4
-            Download().download_thumbnail(self.video_info[i]["pic"], f"./temp/{self.video_info[i]['bvid']}.jpg")
-            video_widget = VideoWidget(
-                title=self.video_info[i]["title"],
-                duration=self.video_info[i]["duration"],
-                thumbnail_path=f"./temp/{self.video_info[i]['bvid']}.jpg",  
-                upname=self.video_info[i]["owner"]["name"],  
-                release_time=self.video_info[i]["pubdate"]   
-            )
+        self.loading_label = QLabel("加载中...", self)
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        self.loading_label.setStyleSheet("""
+            font-size: 24px; 
+            color: white;
+            background-color: rgba(0,0,0,150);
+            border-radius: 10px;
+        """)
+
+    def load_initial_data(self):
+        self.loading_label.show()
+        self.loading_label.setGeometry(0, 0, self.width(), self.height())
+        os.makedirs("./temp", exist_ok=True)
+        
+        loader = DataLoader(page=1, pagesize=12)
+        loader.signals.data_ready.connect(self.on_data_loaded)
+        loader.signals.data_failed.connect(self.on_data_failed)
+        loader.start()
+
+    def on_data_loaded(self, data):
+        if not self._is_alive:
+            return
+        self.loading_label.hide()
+        self.video_info = data
+        self.create_video_grid()
+        self.start_thumbnail_downloads()
+
+    def on_data_failed(self):
+        if not self._is_alive:
+            return
+        self.loading_label.setText("加载失败，点击重试")
+        self.loading_label.mousePressEvent = lambda _: self.load_initial_data()
+
+    def create_video_grid(self):
+        valid_count = min(len(self.video_info), 12)
+        for i in range(valid_count):
+            row, col = divmod(i, 4)
+            video_widget = self.create_video_widget(i)
             self.video_widgets.append(video_widget)
             self.grid_layout.addWidget(video_widget, row, col)
 
-    def get_video_widget(self, index):
-        """获取指定索引的视频组件"""
-        if 0 <= index < len(self.video_widgets):
-            return self.video_widgets[index]
-        return None
+    def create_video_widget(self, index):
+        info = self.video_info[index]
+        return VideoWidget(
+            title=info.get("title", ""),
+            duration=info.get("duration", 0),
+            thumbnail_path="./img/none.png",
+            upname=info.get("owner", {}).get("name", ""),
+            release_time=info.get("pubdate", 0)
+        )
 
-    def get_all_widgets(self):
-        """获取全部视频组件"""
-        return self.video_widgets
-    
-    def update_video_info(self):
-        """更新视频信息"""
-        self.page += 1
-        video_info_list = GetRecommendVideos(page=self.page, pagesize=12).get_recommend_videos()
-        for i, video_widget in enumerate(self.video_widgets):
-            video_widget.update_info(title=video_info_list[i]["title"], duration=video_info_list[i]["duration"], thumbnail_path=video_info_list[i]["thumbnail_path"], upname=video_info_list[i]["upname"], release_time=video_info_list[i]["release_time"])
+    def start_thumbnail_downloads(self):
+        self.download_threads = [t for t in self.download_threads if t.is_alive()]
+        
+        for i, info in enumerate(self.video_info[:12]):
+            thread = ThumbnailDownloader(
+                pic_url=info["pic"],
+                bvid=info["bvid"],
+                index=i,
+                controller=self
+            )
+            self.download_threads.append(thread)
+            thread.start()
+
+    def update_thumbnail(self, index, path):
+        if self._is_alive and index < len(self.video_widgets):
+            self.video_widgets[index].update_info(thumbnail_path=path)
+
+    def closeEvent(self, event):
+        self._is_alive = False
+        for t in self.download_threads:
+            t.join(timeout=1)
+        super().closeEvent(event)
 
 if __name__ == "__main__":
     import sys
     from PyQt5.QtWidgets import QApplication
     
     app = QApplication(sys.argv)
-    video_controller = VideoController()
-    video_controller.show()
+    controller = VideoController()
+    controller.show()
     sys.exit(app.exec_())
-    
