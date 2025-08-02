@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
         
         # 视频控制器
         self.video_controller = VideoController(self)
-        self.video_controller.setGeometry(QRect(100, 40, self.width(), self.height()))
+        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
         self.video_controller.setParent(self)
         
         # 更新
@@ -338,6 +338,8 @@ class MainWindow(QMainWindow):
             self.setting_function()
         else:
             self.home_function()
+        
+        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
 
         
 
