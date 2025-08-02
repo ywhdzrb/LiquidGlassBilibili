@@ -344,6 +344,14 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
+    app.setStyleSheet("""
+    QLabel {
+    font-family: 'Microsoft YaHei';
+    font-size: 12px;
+    }
+    """)
+
+
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec_())
