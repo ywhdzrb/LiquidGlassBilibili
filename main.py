@@ -350,6 +350,7 @@ if __name__ == '__main__':
     QLabel {
     font-family: 'Microsoft YaHei';
     font-size: 12px;
+    font-weight: bold;
     }
     """)
 
