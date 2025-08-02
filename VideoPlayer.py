@@ -4,12 +4,14 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtCore import QUrl, Qt, QTimer, QSize
 from PyQt5.QtGui import QIcon
+from GetBilibiliApi import Download
 
 class VideoPlayer(QWidget):
     def __init__(self, parent=None, bvid=None, cid=None):
         super().__init__(parent)
         self.bvid = bvid
         self.cid = cid
+        #Download().download_video(self.bvid, self.cid, f"./temp/{self.bvid}.mp4")
         self.setup_ui()
         self.setup_media_player()
         
