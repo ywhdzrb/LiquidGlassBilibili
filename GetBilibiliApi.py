@@ -346,9 +346,9 @@ if __name__ == "__main__":
     # user_data = user_info.get_user_info()
     # print(user_data)
     # Download().download_user_face(user_data["face"], "./temp/face.jpg")
-    # # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
     # a = QrLogin()
     # a.get_qrcode()
     # a.check_login()
-    print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
+    # print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
     pass
