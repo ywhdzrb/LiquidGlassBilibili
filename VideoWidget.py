@@ -2,7 +2,7 @@ import time
 import os
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QPainter, QColor, QBitmap
 from PyQt5.QtWidgets import QWidget, QLabel
 
 from LiquidGlassWidget import LiquidGlassWidget
@@ -51,21 +51,17 @@ class VideoWidget(QWidget):
 
         # 视频缩略图标签,使用裁剪
         self.thumbnail_label = QLabel(self)
-        self.thumbnail_label.setGeometry(15, 20, 270, 150)  # 固定尺寸为300x150
+        self.thumbnail_label.setGeometry(15, 20, 270, 150)  # 注意尺寸改为270x150
         
         # 使用保持宽高比的缩放并裁剪多余部分
         thumbnail = QPixmap(self.thumbnail_path).scaled(
-            QSize(300, 150),  # 固定目标尺寸
-            Qt.KeepAspectRatioByExpanding,  # 保持宽高比并扩展填充
+            QSize(270, 150),  # 修改目标尺寸为实际显示尺寸
+            Qt.KeepAspectRatioByExpanding,
             Qt.SmoothTransformation
         )
-        # 创建裁剪后的缩略图
-        self.thumbnail_label.setPixmap(thumbnail.copy(
-            (thumbnail.width() - 300) // 2,  # 水平居中裁剪
-            (thumbnail.height() - 150) // 2,  # 垂直居中裁剪
-            300,
-            150
-        ))
+        # 应用圆角处理（使用修正后的changeImage方法）
+        rounded_thumbnail = self.changeImage(thumbnail, 10)
+        self.thumbnail_label.setPixmap(rounded_thumbnail)
 
         # 视频标题标签
         self.title_label = QLabel(self)
@@ -82,8 +78,36 @@ class VideoWidget(QWidget):
         self.upname_label.setText(f"UP:{self.upname} · {self.relative_time_str}")
         self.upname_label.setGeometry(15, 180, 300, 30)  # 调整位置和大小
 
+    def changeImage(self, img_in, radius):
+        target_size = QSize(270, 150)
+        # 创建与目标尺寸相同的遮罩
+        mask = QBitmap(target_size)
+        painter = QPainter(mask)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # 绘制白色圆角区域（可见部分）
+        painter.fillRect(mask.rect(), Qt.color0)  # 背景设为透明
+        painter.setBrush(Qt.color1)               # 圆角区域设为可见
+        painter.drawRoundedRect(mask.rect(), radius, radius)
+        painter.end()
 
-    # 更改封面
+        # 缩放图像到目标尺寸
+        scaled_img = img_in.scaled(
+            target_size,
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation
+        )
+        # 居中裁剪
+        cropped_img = scaled_img.copy(
+            (scaled_img.width() - target_size.width()) // 2,
+            (scaled_img.height() - target_size.height()) // 2,
+            target_size.width(),
+            target_size.height()
+        )
+        cropped_img.setMask(mask)
+        return cropped_img
+
+    # 更新视频信息
     def update_info(self, title=None, duration=None, thumbnail_path=None, upname=None, release_time=None):
         if title == None:
             title = self.title
@@ -123,18 +147,15 @@ class VideoWidget(QWidget):
         self.time_label.setText(f"{self.duration // 60:02}:{self.duration % 60:02}")
         self.upname_label.setText(f"UP:{self.upname} · {self.relative_time_str}")
 
+        # 使用保持宽高比的缩放并裁剪多余部分
         thumbnail = QPixmap(self.thumbnail_path).scaled(
-            QSize(300, 150),  # 固定目标尺寸
-            Qt.KeepAspectRatioByExpanding,  # 保持宽高比并扩展填充
+            QSize(270, 150),  # 修改目标尺寸为实际显示尺寸
+            Qt.KeepAspectRatioByExpanding,
             Qt.SmoothTransformation
         )
-        # 创建裁剪后的缩略图
-        self.thumbnail_label.setPixmap(thumbnail.copy(
-            (thumbnail.width() - 300) // 2,  # 水平居中裁剪
-            (thumbnail.height() - 150) // 2,  # 垂直居中裁剪
-            300,
-            150
-        ))
+        # 应用圆角处理
+        rounded_thumbnail = self.changeImage(thumbnail, 10)
+        self.thumbnail_label.setPixmap(rounded_thumbnail)
 
 
 
