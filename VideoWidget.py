@@ -1,21 +1,28 @@
 import time
 import os
 
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QBitmap
-from PyQt5.QtWidgets import QWidget, QLabel
+from PyQt5.QtWidgets import QWidget, QLabel, QApplication
 
 from LiquidGlassWidget import LiquidGlassWidget
+from VideoPlayer import VideoPlayer
 
 
 class VideoWidget(QWidget):
-    def __init__(self, parent=None, title="", duration=0, thumbnail_path="./img/none.png", upname="", release_time=0):
+    clicked = pyqtSignal()
+    def __init__(self, parent=None, title="", duration=0, thumbnail_path="./img/none.png", upname="", release_time=0, bvid=None, cid=None):
         super().__init__(parent)
 
         self.title = title
         self.duration = duration
         self.thumbnail_path = thumbnail_path
         self.upname = upname
+        self.bvid = bvid
+        self.cid = cid
+
+        # 如果点击了此部件播放视频
+        self.clicked.connect(self.play_video)
 
         if len(self.title) > 20:
             self.title = self.title[:20] + "..."
@@ -107,6 +114,11 @@ class VideoWidget(QWidget):
         cropped_img.setMask(mask)
         return cropped_img
 
+    def play_video(self):
+        self.video_player = VideoPlayer(bvid=self.bvid, cid=self.cid)
+        self.video_player.setGeometry(100, 100, 640, 480)
+        self.video_player.show()
+
     # 更新视频信息
     def update_info(self, title=None, duration=None, thumbnail_path=None, upname=None, release_time=None):
         if title == None:
@@ -157,12 +169,15 @@ class VideoWidget(QWidget):
         rounded_thumbnail = self.changeImage(thumbnail, 10)
         self.thumbnail_label.setPixmap(rounded_thumbnail)
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 
 
-
-if __name__ == "__main__":
+if __name__ == "__main__": 
     import sys
     from PyQt5.QtWidgets import QApplication
     

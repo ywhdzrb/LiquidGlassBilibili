@@ -108,7 +108,9 @@ class VideoController(QWidget):
             duration=info.get("duration", 0),
             thumbnail_path="./img/none.png",
             upname=info.get("owner", {}).get("name", ""),
-            release_time=info.get("pubdate", 0)
+            release_time=info.get("pubdate", 0),
+            bvid=info.get("bvid", ""),
+            cid=info.get("cid", "")
         )
 
     def start_thumbnail_downloads(self):

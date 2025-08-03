@@ -11,9 +11,14 @@ class VideoPlayer(QWidget):
         super().__init__(parent)
         self.bvid = bvid
         self.cid = cid
-        #Download().download_video(self.bvid, self.cid, f"./temp/{self.bvid}.mp4")
+        self.media_player = None  # 确保media_player初始化为None
+        self.timer = None  # 确保timer初始化为None
         self.setup_ui()
+        Download().download_video(self.bvid, self.cid, f"./temp/{self.bvid}.mp4", self.on_download_complete)
+    
+    def on_download_complete(self):
         self.setup_media_player()
+        self.video_widget.show()
         
     def setup_ui(self):
         # 主水平布局（侧边栏 + 内容区域）
@@ -88,6 +93,7 @@ class VideoPlayer(QWidget):
         main_layout.addWidget(scroll_area)
 
     def setup_media_player(self):
+
         self.media_player = QMediaPlayer()
         self.media_player.setVideoOutput(self.video_widget)
         self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(f"./temp/{self.bvid}.mp4")))
@@ -108,13 +114,37 @@ class VideoPlayer(QWidget):
             self.play_btn.setIcon(QIcon("./img/pause.png"))
 
     def update_progress(self):
+        # 安全检查：确保媒体播放器和定时器存在
+        if not self.media_player or not self.timer:
+            return
+            
+        # 确保媒体状态正常
+        if self.media_player.state() == QMediaPlayer.StoppedState:
+            return
+            
         duration = self.media_player.duration()
         position = self.media_player.position()
+        
+        # 防止除以零错误
         if duration > 0:
             self.progress_slider.setValue(int(position * 100 / duration))
 
     def set_position(self, position):
         self.media_player.setPosition(position * self.media_player.duration() // 100)
+    
+    def closeEvent(self, event):
+        # 停止定时器
+        if self.timer and self.timer.isActive():
+            self.timer.stop()
+            
+        # 清理媒体播放器
+        if self.media_player:
+            self.media_player.stop()
+            self.media_player.setMedia(QMediaContent())
+            self.media_player.deleteLater()
+            self.media_player = None
+            
+        event.accept()
 
 if __name__ == "__main__":
     import sys
