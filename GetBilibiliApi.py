@@ -12,8 +12,9 @@ import wbiSigned as wbi
 # user_agent = "LiquidGlassBilibili Client/0.0.1 (intmainreturn@outlook.com)"
 
 class GetVideoInfo:
-    def __init__(self, id):
+    def __init__(self, id, cid):
         self.id = id
+        self.cid = cid
         if id[0:2] == "BV":
             self.url = f"https://api.bilibili.com/x/web-interface/view?bvid={id}"
         else:
@@ -60,6 +61,43 @@ class GetVideoInfo:
             "avid": data.get("aid", ""),
         }
         return video_info
+
+
+    def get_video_streaming_info(self):
+        cookies = {}
+        with open("Cookie", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                # 解析Cookie文件中的每一行
+                parts = line.split('\t')
+                if len(parts) >= 7:
+                    cookies[parts[5]] = parts[6]
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Referer": "https://www.bilibili.com/",
+        }
+
+        url = f"https://api.bilibili.com/x/player/wbi/playurl?bvid={self.id}&cid={self.cid}&qn=112&fnval=4048"
+        response = rq.get(url, headers=headers, cookies=cookies)
+        response.raise_for_status()
+        info = response.json()
+        
+        # 解析DASH格式数据
+        dash_data = info.get("data", {}).get("dash", {})
+        if not dash_data:
+            raise Exception("无法获取DASH格式视频信息")
+        
+        video_url = dash_data.get("video", [{}])[0].get("baseUrl", "")
+        audio_url = dash_data.get("audio", [{}])[0].get("baseUrl", "")
+        if not video_url or not audio_url:
+            raise Exception("无法获取视频或音频URL")
+
+        return video_url, audio_url
+
+
 
 # 获取推荐
 class GetRecommendVideos:
@@ -357,9 +395,10 @@ if __name__ == "__main__":
     # user_data = user_info.get_user_info()
     # print(user_data)
     # Download().download_user_face(user_data["face"], "./temp/face.jpg")
-    Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
     # a = QrLogin()
     # a.get_qrcode()
     # a.check_login()
     # print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
+    print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_streaming_info())
     pass
