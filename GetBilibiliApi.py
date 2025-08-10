@@ -62,6 +62,12 @@ class GetVideoInfo:
         }
         return video_info
 
+    def get_video_duration(self):
+        """获取视频时长（秒）"""
+        if not self.is_success():
+            return 0
+        return self.info.get("data", {}).get("duration", 0)
+
 
     def get_video_streaming_info(self):
         cookies = {}
@@ -124,7 +130,8 @@ class GetRecommendVideos:
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Referer": "https://www.bilibili.com/",
+            "Referer": "https://www.bilibili.com",
+
         }
 
         response = rq.get(self.url, headers=headers, cookies=cookies)
@@ -395,10 +402,10 @@ if __name__ == "__main__":
     # user_data = user_info.get_user_info()
     # print(user_data)
     # Download().download_user_face(user_data["face"], "./temp/face.jpg")
-    Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
+    # Download().download_video("BV1aAhPzdEJ8","31374511005","./temp/demo.mp4")
     # a = QrLogin()
     # a.get_qrcode()
     # a.check_login()
     # print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
-    # print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_streaming_info())
+    print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_duration())
     pass
