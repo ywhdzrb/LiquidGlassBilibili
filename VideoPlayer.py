@@ -225,7 +225,7 @@ class VideoPlayer(QWidget):
         self.setLayout(main_layout)
         
         # 设置窗口属性
-        self.setWindowTitle(f"B站视频播放器 - {self.bvid}")
+        self.setWindowTitle(f"视频播放器 - {self.bvid}")
         self.setMinimumSize(800, 500)
         
         # 应用深色主题

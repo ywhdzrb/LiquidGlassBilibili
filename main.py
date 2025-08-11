@@ -1,12 +1,12 @@
 import os
 import sys
-import threading
 
 from PyQt5.QtCore import (Qt,
                           QRect,
                           QSize,
                           QPropertyAnimation,
-                          QEasingCurve)
+                          QEasingCurve,
+                          QTimer)
 from PyQt5.QtGui import (QIcon,
                          QPixmap,
                          QColor)
@@ -236,7 +236,46 @@ class MainWindow(QMainWindow):
         self.video_controller = VideoController(self)
         self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
         self.video_controller.setParent(self)
-        
+
+        # 刷新按钮
+        self.refresh_btn = QPushButton("", self)
+        self.refresh_btn.setFixedSize(40, 40)  # 固定按钮尺寸
+        self.refresh_btn.clicked.connect(self.refresh_data)
+        self.refresh_btn.setStyleSheet('''
+            QPushButton {
+                color: white;
+                background-color: none;
+                border-radius: 15px;
+                padding: 5px 10px;
+                font-size: 13px;
+                margin-right: 10px;
+            }
+            QPushButton:hover { 
+                background-color: none;
+            }
+        ''')
+        # 刷新按钮图标
+        self.refresh_icon = QPixmap("./img/refresh.png")
+        self.refresh_icon = self.refresh_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.refresh_btn.setIcon(QIcon(self.refresh_icon))
+        self.refresh_btn.setIconSize(QSize(20, 20))
+
+        # 设置位置
+        self.refresh_btn.move(self.width() - 50, self.height() - 80)
+
+        # 按钮底下液态玻璃
+        self.liquid_glass_base = LiquidGlassWidget(self)
+        self.liquid_glass_base.setGeometry(QRect(0, 0, 40, 40))
+        self.liquid_glass_base.move(self.width() - 55, self.height() - 80)
+
+        self.refresh_btn.raise_()
+
+
+
+
+
+
+
         # 更新
         self.update_function()
 
@@ -246,6 +285,25 @@ class MainWindow(QMainWindow):
 
 
 
+
+
+    def refresh_data(self):
+        # 删除现有视频控制器
+        self.video_controller.hide()
+        self.video_controller.deleteLater()
+        
+        # 使用QTimer延迟重建，确保完全删除
+        QTimer.singleShot(100, self.recreate_video_controller)
+
+    def recreate_video_controller(self):
+        """重新创建视频控制器"""
+        # 重新加载视频控制器
+        self.video_controller = VideoController(self)
+        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
+        self.video_controller.setParent(self)
+        self.video_controller.show()  # 确保显示新控制器
+        self.video_controller.raise_()  # 置于顶层
+        self.refresh_btn.raise_()  # 置于顶层
 
 
 
@@ -341,6 +399,17 @@ class MainWindow(QMainWindow):
         
         self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
 
+        self.refresh_btn.move(self.width() - 50, self.height() - 80)
+        self.liquid_glass_base.move(self.width() - 55, self.height() - 80)
+    
+    def closeEvent(self, a0):
+        # 关闭所有线程
+        self.video_controller._is_alive = False
+        # 关闭所有线程
+        for thread in self.video_controller.download_threads:
+            thread.join()
+
+        return super().closeEvent(a0)
         
 
 if __name__ == '__main__':
