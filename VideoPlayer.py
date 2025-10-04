@@ -41,72 +41,35 @@ class CustomNetworkAccessManager(QNetworkAccessManager):
         
         return super().createRequest(op, request, outgoingData)
 
-class FFmpegProxyServer(threading.Thread):
-    """FFmpeg代理服务器，合并视频/音频流"""
-    def __init__(self, video_url, audio_url, cookies, headers):
+class MP4ProxyServer(threading.Thread):
+    """MP4代理服务器，直接提供MP4格式视频"""
+    def __init__(self, mp4_url, cookies, headers):
         super().__init__()
-        self.video_url = video_url
-        self.audio_url = audio_url
+        self.mp4_url = mp4_url
         self.cookies = cookies
         self.headers = headers
         self.port = 0
         self.server = None
-        self.process = None
         self.ready = threading.Event()
         self.output_url = ""
         
     def run(self):
-        # 创建临时文件作为输出
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
-            output_file = temp_file.name
-        
         try:
-            # 设置FFmpeg输入参数
-            input_video = ffmpeg.input(self.video_url, headers=self._format_headers())
-            input_audio = ffmpeg.input(self.audio_url, headers=self._format_headers())
-            
-            # 配置FFmpeg输出参数
-            (
-                ffmpeg
-                .output(input_video, input_audio, output_file, 
-                        vcodec='copy', acodec='copy', 
-                        movflags='frag_keyframe+empty_moov+faststart')
-                .overwrite_output()
-                .run_async(pipe_stdout=True, pipe_stderr=True)
-            )
-            
-            # 等待FFmpeg生成足够的数据
-            while not os.path.exists(output_file) or os.path.getsize(output_file) < 1024 * 1024:
-                time.sleep(0.5)
-            
-            # 启动HTTP服务器
+            # 查找可用端口
             self.port = self._find_available_port()
             self.output_url = f"http://127.0.0.1:{self.port}/video.mp4"
             
             # 启动HTTP服务器
-            self.server = HTTPServer(('127.0.0.1', self.port), self._make_handler(output_file))
+            self.server = HTTPServer(('127.0.0.1', self.port), self._make_handler())
             self.ready.set()
-            logger.info(f"FFmpeg代理服务器启动: {self.output_url}")
+            logger.info(f"MP4代理服务器启动: {self.output_url}")
             
-            # 在单独的线程中运行服务器
-            server_thread = threading.Thread(target=self.server.serve_forever)
-            server_thread.daemon = True
-            server_thread.start()
+            # 运行服务器
+            self.server.serve_forever()
             
-            # 监控FFmpeg进程
-            while True:
-                time.sleep(1)
-                
         except Exception as e:
-            logger.error(f"FFmpeg代理服务器错误: {str(e)}")
+            logger.error(f"MP4代理服务器错误: {str(e)}")
             self.ready.set()  # 确保不会死锁
-    
-    def _format_headers(self):
-        """格式化FFmpeg可用的headers字符串"""
-        headers = []
-        for key, value in self.headers.items():
-            headers.append(f"{key}: {value}")
-        return "\r\n".join(headers)
     
     def _find_available_port(self):
         """查找可用端口"""
@@ -117,37 +80,64 @@ class FFmpegProxyServer(threading.Thread):
         s.close()
         return port
     
-    def _make_handler(self, file_path):
-        """创建HTTP请求处理程序"""
-        class VideoHandler(BaseHTTPRequestHandler):
+    def _make_handler(self):
+        """创建HTTP请求处理程序，直接转发MP4流"""
+        class MP4Handler(BaseHTTPRequestHandler):
             def do_GET(inner_self):
                 if inner_self.path == "/video.mp4":
-                    inner_self.send_response(200)
-                    inner_self.send_header('Content-type', 'video/mp4')
-                    inner_self.end_headers()
-                    
-                    # 流式传输文件
-                    with open(file_path, 'rb') as f:
-                        while True:
-                            data = f.read(1024 * 1024)  # 1MB chunks
-                            if not data:
-                                break
-                            inner_self.wfile.write(data)
+                    try:
+                        # 设置响应头
+                        inner_self.send_response(200)
+                        inner_self.send_header('Content-type', 'video/mp4')
+                        inner_self.send_header('Access-Control-Allow-Origin', '*')
+                        inner_self.send_header('Access-Control-Allow-Headers', '*')
+                        inner_self.end_headers()
+                        
+                        # 创建请求头
+                        headers = {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                            "Referer": "https://www.bilibili.com/"
+                        }
+                        
+                        # 添加Cookie
+                        cookie_str = "; ".join([f"{k}={v}" for k, v in self.cookies.items()])
+                        if cookie_str:
+                            headers["Cookie"] = cookie_str
+                        
+                        # 流式传输MP4数据
+                        response = rq.get(self.mp4_url, headers=headers, stream=True, cookies=self.cookies)
+                        response.raise_for_status()
+                        
+                        # 传输数据
+                        for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
+                            if chunk:
+                                try:
+                                    inner_self.wfile.write(chunk)
+                                except (ConnectionResetError, BrokenPipeError):
+                                    # 客户端断开连接
+                                    break
+                                    
+                    except Exception as e:
+                        logger.error(f"MP4流传输错误: {str(e)}")
+                        inner_self.send_response(500)
+                        inner_self.end_headers()
                 else:
                     inner_self.send_response(404)
                     inner_self.end_headers()
+            
+            def log_message(self, format, *args):
+                """禁用默认日志输出"""
+                pass
         
-        return VideoHandler
+        return MP4Handler
     
     def stop(self):
         """停止服务器"""
         if self.server:
             self.server.shutdown()
-        if self.process:
-            self.process.terminate()
 
 class VideoPlayer(QWidget):
-    """Bilibili视频播放器（流媒体版本）"""
+    """Bilibili视频播放器（MP4流版本）"""
     def __init__(self, parent=None, bvid=None, cid=None):
         super().__init__(parent)
         self.bvid = bvid
@@ -187,25 +177,25 @@ class VideoPlayer(QWidget):
         return cookies
     
     def start_stream_loading(self):
-        """开始流媒体加载过程"""
+        """开始MP4流媒体加载过程"""
         try:
-            # 获取视频流信息
+            # 获取视频流信息 - 使用MP4格式
             video_info = GetVideoInfo(self.bvid, self.cid)
-            video_url, audio_url = video_info.get_video_streaming_info()
+            mp4_url = video_info.get_video_streaming_info_mp4()
             
             # 获取API返回的视频时长（秒）并转换为毫秒
             self.api_duration = video_info.get_video_duration() * 1000
             
-            # 启动FFmpeg代理服务器
-            self.proxy_server = FFmpegProxyServer(video_url, audio_url, self.cookies, self.headers)
+            # 启动MP4代理服务器
+            self.proxy_server = MP4ProxyServer(mp4_url, self.cookies, self.headers)
             self.proxy_server.start()
             
             # 等待服务器准备就绪
-            self.status_label.setText("正在初始化流媒体服务器...")
+            self.status_label.setText("正在初始化MP4流媒体服务器...")
             self.proxy_server.ready.wait(timeout=30)
             
             if not self.proxy_server.output_url:
-                raise Exception("流媒体服务器启动失败")
+                raise Exception("MP4流媒体服务器启动失败")
             
             # 设置媒体播放器
             self.setup_media_player(self.proxy_server.output_url)
@@ -625,11 +615,6 @@ class VideoPlayer(QWidget):
             self.media_player.deleteLater()
             self.media_player = None
         
-        # 关闭ffmpeg服务器
-        
-
-
-            
         event.accept()
 
 if __name__ == "__main__":

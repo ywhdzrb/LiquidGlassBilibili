@@ -69,7 +69,7 @@ class GetVideoInfo:
         return self.info.get("data", {}).get("duration", 0)
 
 
-    def get_video_streaming_info(self):
+    def get_video_streaming_info_dash(self):
         cookies = {}
         with open("Cookie", "r") as f:
             for line in f:
@@ -102,7 +102,38 @@ class GetVideoInfo:
             raise Exception("无法获取视频或音频URL")
 
         return video_url, audio_url
+    
+    def get_video_streaming_info_mp4(self):
+        cookies = {}
+        with open("Cookie", "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                # 解析Cookie文件中的每一行
+                parts = line.split('\t')
+                if len(parts) >= 7:
+                    cookies[parts[5]] = parts[6]
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Referer": "https://www.bilibili.com/",
+        }
 
+        url = f"https://api.bilibili.com/x/player/wbi/playurl?bvid={self.id}&cid={self.cid}&qn=112&fnval=1"
+        response = rq.get(url, headers=headers, cookies=cookies)
+        response.raise_for_status()
+        info = response.json()
+        # 解析MP4格式数据
+        mp4_data = info.get("data", {}).get("durl", [{}])[0]
+        if not mp4_data:
+            raise Exception("无法获取MP4格式视频信息")
+        
+        video_url = mp4_data.get("url", "")
+        if not video_url:
+            raise Exception("无法获取视频URL")
+
+        return video_url
 
 
 # 获取推荐
@@ -407,5 +438,6 @@ if __name__ == "__main__":
     # a.get_qrcode()
     # a.check_login()
     # print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
-    print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_duration())
+    # print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_duration())
+    print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_streaming_info_mp4())
     pass
