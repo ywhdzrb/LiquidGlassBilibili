@@ -10,6 +10,14 @@ import wbiSigned as wbi
 
 
 # user_agent = "LiquidGlassBilibili Client/0.0.1 (intmainreturn@outlook.com)"
+os.environ['NO_PROXY'] = '*'
+os.environ['no_proxy'] = '*'
+
+# 禁用所有代理相关环境变量
+proxy_env_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+for proxy_var in proxy_env_vars:
+    os.environ.pop(proxy_var, None)  # 移除环境变量
+
 
 class GetVideoInfo:
     def __init__(self, id, cid):
