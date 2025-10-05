@@ -301,7 +301,7 @@ class Download:
                 time.sleep(2)
         raise Exception(f"[{task_name}] 下载失败，已达最大重试次数")
     
-    def download_user_face(self, url, save_path):
+    def download_user_face(self, save_path):
 
         cookies = {}
         with open("Cookie", "r") as f:
@@ -317,6 +317,9 @@ class Download:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Referer": "https://www.bilibili.com/"
         }
+
+        user_data = GetUserInfo().get_user_info()
+        url = user_data["face"]
 
         response = rq.get(url, headers=headers, cookies=cookies)
         response.raise_for_status()
@@ -428,6 +431,9 @@ class GetUserInfo:
             "is_login":info.get("isLogin", 0),
             "money":info.get("money", 0),
         }
+        if self.info.get("code", 0) != 0:
+            return None
+        
         return user_info
 
 
@@ -447,5 +453,6 @@ if __name__ == "__main__":
     # a.check_login()
     # print(GetRecommendVideos(page=1, pagesize=12).get_recommend_videos())
     # print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_duration())
-    print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_streaming_info_mp4())
+    # print(GetVideoInfo("BV1aAhPzdEJ8","31374511005").get_video_streaming_info_mp4())
+    Download().download_user_face("./temp/face.jpg")
     pass

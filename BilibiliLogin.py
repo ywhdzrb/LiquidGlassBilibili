@@ -7,7 +7,7 @@ class BiliBiliLogin(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bilibili登录")
-        self.setGeometry(100, 100, 300, 300)
+        self.setGeometry(100, 100, 300, 500)
 
         self.qrlogin = QrLogin()
         qr_path = self.qrlogin.get_qrcode()
@@ -29,3 +29,11 @@ class BiliBiliLogin(QWidget):
             self.button.setText("登录成功")
         else:
             self.button.setText("登录失败")
+
+if __name__ == "__main__":
+    import sys
+    from PyQt5.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    login_window = BiliBiliLogin()
+    login_window.show()
+    sys.exit(app.exec_())

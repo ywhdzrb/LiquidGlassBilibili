@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (QApplication,
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
 from VideoController import VideoController
+from GetBilibiliApi import *
 
 
 class MainWindow(QMainWindow):
@@ -222,6 +223,30 @@ class MainWindow(QMainWindow):
         self.setting_text.setParent(self.sidebar)
         self.setting_text.setGeometry(QRect(14, 680, 30, 20))
 
+        #头像
+        self.headshot = QLabel()
+        self.headshot.setGeometry(QRect(12, 600, 30, 30))
+        self.headshot.setStyleSheet("""
+            background-color: transparent;
+            border-radius: 15px;
+            border: 1px solid transparent;
+        """)
+        self.headshot.setParent(self.sidebar)
+        # 加载头像
+        if GetUserInfo().get_user_info() == None:
+            self.headshot.setPixmap(QPixmap("./img/none.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation))
+            from BilibiliLogin import BiliBiliLogin
+            self.login_window = BiliBiliLogin()
+            self.login_window.show()
+
+        else:
+            Download().download_user_face("./temp/face.jpg")
+            self.headshot.setPixmap(QPixmap("./temp/face.jpg").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation))
+        self.headshot.setScaledContents(True)
+        
+
+
+
         # 液态玻璃蒙版
         self.liquid_glass = LiquidGlassWidget(self)
         self.liquid_glass.setGeometry(QRect(0, 40, 50, 60))
@@ -236,7 +261,7 @@ class MainWindow(QMainWindow):
         """初始化视频控制器"""
         # 视频控制器
         self.video_controller = VideoController(self)
-        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
+        self.video_controller.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
         self.video_controller.setParent(self)
 
     def init_refresh_button(self):
@@ -281,7 +306,7 @@ class MainWindow(QMainWindow):
     def recreate_video_controller(self):
         """重新创建视频控制器"""
         self.video_controller = VideoController(self)
-        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
+        self.video_controller.setGeometry(QRect(40, 40, self.width()-50, self.height()-50))
         self.video_controller.setParent(self)
         self.video_controller.show()
         self.video_controller.raise_()
@@ -371,7 +396,7 @@ class MainWindow(QMainWindow):
             self.home_function()
         
         # 更新视频控制器
-        self.video_controller.setGeometry(QRect(40, 40, self.width(), self.height()))
+        self.video_controller.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
 
         # 更新刷新按钮位置
         self.refresh_btn.move(self.width() - 50, self.height() - 80)
@@ -385,3 +410,24 @@ class MainWindow(QMainWindow):
             thread.join()
 
         return super().closeEvent(a0)
+
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    # 设置全局样式
+    app.setStyleSheet("""
+    QLabel {
+        font-family: 'Microsoft YaHei';
+        font-size: 12px;
+        font-weight: bold;
+    }
+    """)
+
+    # 创建并显示主窗口
+    mainWindow = MainWindow()
+    mainWindow.show()
+    
+    # 运行应用程序
+    sys.exit(app.exec_())
