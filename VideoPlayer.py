@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                            QScrollArea, QSlider, QLabel, QSizePolicy, QSpacerItem,
-                            QMessageBox, QProgressBar, QApplication)
+                            QSlider, QLabel, QSizePolicy, QMessageBox, QApplication)
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtCore import QUrl, Qt, QTimer, QSize
@@ -72,7 +71,6 @@ class VideoPlayer(QWidget):
             self.proxy_server.start()
             
             # 等待服务器准备就绪
-            self.status_label.setText("正在初始化MP4流媒体服务器...")
             self.proxy_server.ready.wait(timeout=30)
             
             if not self.proxy_server.output_url:
@@ -80,19 +78,16 @@ class VideoPlayer(QWidget):
             
             # 设置媒体播放器
             self.setup_media_player(self.proxy_server.output_url)
-            self.status_label.setText("准备播放")
             
         except Exception as e:
-            self.status_label.setText("初始化失败")
             QMessageBox.critical(self, "错误", f"无法初始化播放器:\n{str(e)}")
             logger.exception("播放器初始化失败")
 
     def setup_ui(self):
         """设置用户界面"""
-        # 主水平布局（侧边栏 + 内容区域）
-        main_layout = QHBoxLayout()
+        # 主布局
+        main_layout = QVBoxLayout()
         self.setup_content_area(main_layout)
-        self.setup_recommendation_list(main_layout)
         self.setLayout(main_layout)
         
         # 设置窗口属性
@@ -147,17 +142,6 @@ class VideoPlayer(QWidget):
             QLabel {
                 color: #FFFFFF;
             }
-            QProgressBar {
-                border: 1px solid #444;
-                border-radius: 3px;
-                background: #333;
-                text-align: center;
-                color: white;
-            }
-            QProgressBar::chunk {
-                background-color: #00A1D6;
-                width: 10px;
-            }
         """)
 
     def create_nav_button(self, icon_path, tooltip, callback=None):
@@ -183,24 +167,10 @@ class VideoPlayer(QWidget):
         self.video_widget.setStyleSheet("background-color: black;")
         content_layout.addWidget(self.video_widget)
         
-        # 状态标签（加载状态）
-        self.status_label = QLabel("正在初始化...")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("background-color: #1A1A1A; padding: 5px;")
-        content_layout.addWidget(self.status_label)
-        
-        # 缓冲进度条
-        self.buffer_progress = QProgressBar()
-        self.buffer_progress.setRange(0, 100)
-        self.buffer_progress.setValue(0)
-        self.buffer_progress.setTextVisible(True)
-        self.buffer_progress.setFormat("缓冲中: %p%")
-        content_layout.addWidget(self.buffer_progress)
-        
         # 添加控制栏
         self.setup_control_bar(content_layout)
         
-        main_layout.addLayout(content_layout, stretch=3)
+        main_layout.addLayout(content_layout)
 
     def setup_control_bar(self, parent_layout):
         """设置播放控制栏"""
@@ -243,48 +213,6 @@ class VideoPlayer(QWidget):
         
         parent_layout.addWidget(control_bar)
 
-    def setup_recommendation_list(self, main_layout):
-        """设置右侧推荐列表"""
-        scroll_area = QScrollArea()
-        scroll_area.setFixedWidth(240)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("background-color: #252525;")
-        
-        # 推荐列表容器
-        self.recommend_list = QWidget()
-        self.recommend_layout = QVBoxLayout()
-        self.recommend_layout.setContentsMargins(5, 5, 5, 5)
-        self.recommend_layout.setSpacing(10)
-        
-        # 添加推荐标题
-        title = QLabel("推荐视频")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
-        self.recommend_layout.addWidget(title)
-        
-        # 添加一些示例推荐项
-        for i in range(5):
-            item = QPushButton(f"推荐视频 {i+1}")
-            item.setStyleSheet("""
-                QPushButton {
-                    text-align: left;
-                    padding: 10px;
-                    background: #353535;
-                    border-radius: 4px;
-                }
-                QPushButton:hover {
-                    background: #454545;
-                }
-            """)
-            self.recommend_layout.addWidget(item)
-        
-        # 添加弹性空间
-        self.recommend_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
-        
-        self.recommend_list.setLayout(self.recommend_layout)
-        scroll_area.setWidget(self.recommend_list)
-        
-        main_layout.addWidget(scroll_area)
-
     def setup_media_player(self, stream_url):
         """设置媒体播放器"""
         self.media_player = QMediaPlayer()
@@ -298,8 +226,6 @@ class VideoPlayer(QWidget):
         self.media_player.positionChanged.connect(self.update_time_display)
         self.media_player.durationChanged.connect(self.update_duration_display)
         self.media_player.volumeChanged.connect(self.update_volume_display)
-        self.media_player.bufferStatusChanged.connect(self.update_buffer_status)
-        self.media_player.mediaStatusChanged.connect(self.handle_media_status)
         
         # 设置初始音量
         self.media_player.setVolume(self.volume_slider.value())
@@ -312,41 +238,14 @@ class VideoPlayer(QWidget):
         # 开始播放
         self.media_player.play()
 
-    def update_buffer_status(self, percent_filled):
-        """更新缓冲状态"""
-        self.buffer_progress.setValue(percent_filled)
-        
-        # 根据缓冲状态更新UI
-        if percent_filled < 100:
-            self.status_label.setText(f"缓冲中: {percent_filled}%")
-        else:
-            self.status_label.setText("播放中")
-
-    def handle_media_status(self, status):
-        """处理媒体状态变化"""
-        status_text = {
-            QMediaPlayer.NoMedia: "无媒体",
-            QMediaPlayer.LoadingMedia: "加载中...",
-            QMediaPlayer.LoadedMedia: "已加载",
-            QMediaPlayer.StalledMedia: "缓冲中...",
-            QMediaPlayer.BufferingMedia: "缓冲中...",
-            QMediaPlayer.BufferedMedia: "已缓冲",
-            QMediaPlayer.EndOfMedia: "播放结束",
-            QMediaPlayer.InvalidMedia: "无效媒体"
-        }.get(status, f"未知状态: {status}")
-        
-        self.status_label.setText(status_text)
-
     def toggle_playback(self):
         """切换播放/暂停状态"""
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
             self.play_btn.setIcon(QIcon("./img/play.png"))
-            self.status_label.setText("已暂停")
         else:
             self.media_player.play()
             self.play_btn.setIcon(QIcon("./img/pause.png"))
-            self.status_label.setText("播放中")
             # 鼠标移动时显示控制栏
             self.last_mouse_move_time = time.time()
 
@@ -437,10 +336,8 @@ class VideoPlayer(QWidget):
         """切换全屏状态"""
         if self.is_fullscreen:
             self.showNormal()
-            self.recommend_list.parent().show()  # 显示推荐列表
         else:
             self.showFullScreen()
-            self.recommend_list.parent().hide()  # 隐藏推荐列表
             
         self.is_fullscreen = not self.is_fullscreen
         self.last_mouse_move_time = time.time()
