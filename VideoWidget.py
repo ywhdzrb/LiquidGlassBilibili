@@ -3,7 +3,7 @@ import os
 
 from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QBitmap
-from PyQt5.QtWidgets import QWidget, QLabel, QApplication
+from PyQt5.QtWidgets import QWidget, QLabel, QApplication, QSizePolicy
 
 from LiquidGlassWidget import LiquidGlassWidget
 from VideoPlayer import VideoPlayer
@@ -87,6 +87,9 @@ class VideoWidget(QWidget):
             background-color: transparent;
             padding: 2px;
         """)
+        
+        # 设置大小策略为可扩展
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # 初始化布局
         self.update_layout()

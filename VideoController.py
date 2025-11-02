@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QSizePolicy
 from VideoWidget import VideoWidget
 from GetBilibiliApi import *
 import os
@@ -116,7 +116,9 @@ class VideoController(QWidget):
         
         # 清除现有布局
         for i in reversed(range(self.grid_layout.count())): 
-            self.grid_layout.itemAt(i).widget().setParent(None)
+            widget = self.grid_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
         
         # 计算自适应尺寸
         card_width, card_height = self.calculate_widget_size()
@@ -139,7 +141,12 @@ class VideoController(QWidget):
             bvid=info.get("bvid", ""),
             cid=info.get("cid", "")
         )
-        widget.setFixedSize(width, height)
+        # 不再设置固定大小，而是设置最小和最大尺寸
+        widget.setMinimumSize(width // 2, height // 2)  # 最小尺寸为计算尺寸的一半
+        widget.setMaximumSize(width * 2, height * 2)    # 最大尺寸为计算尺寸的两倍
+        
+        # 设置大小策略为可扩展
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         return widget
 
     def start_thumbnail_downloads(self):
@@ -166,12 +173,16 @@ class VideoController(QWidget):
         super().resizeEvent(event)
         self.loading_label.setGeometry(0, 0, self.width(), self.height())
         
-        # 重新计算并设置所有视频卡片的大小
+        # 重新计算并设置所有视频卡片的推荐尺寸
         if self.video_widgets:
             card_width, card_height = self.calculate_widget_size()
             for widget in self.video_widgets:
-                widget.setFixedSize(card_width, card_height)
-                widget.update_layout()  # 通知widget更新内部布局
+                # 更新最小和最大尺寸，但不设置固定尺寸
+                widget.setMinimumSize(card_width // 2, card_height // 2)
+                widget.setMaximumSize(card_width * 2, card_height * 2)
+                
+                # 强制更新布局
+                widget.update_layout()
 
     def closeEvent(self, event):
         """关闭事件处理"""

@@ -32,6 +32,10 @@ class MainWindow(QMainWindow):
         super().__init__(parent, flags)
 
         # 判断temp目录是否存在
+        if os.path.exists("temp"):
+            for file in os.listdir("temp"):
+                os.remove(os.path.join("temp", file))
+            
         if not os.path.exists("temp"):
             os.makedirs("temp")
 
