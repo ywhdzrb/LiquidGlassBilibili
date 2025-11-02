@@ -9,7 +9,8 @@ from PyQt5.QtCore import (Qt,
                           QTimer)
 from PyQt5.QtGui import (QIcon,
                          QPixmap,
-                         QColor)
+                         QColor,
+                         QMouseEvent)
 from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
                              QFrame,
@@ -23,6 +24,7 @@ from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
 from VideoController import VideoController
 from GetBilibiliApi import *
+from CircularLabel import CircularLabel
 
 
 class MainWindow(QMainWindow):
@@ -38,11 +40,15 @@ class MainWindow(QMainWindow):
             with open("Cookie", "w") as f:
                 f.write("")
 
+        # 添加拖动相关变量
+        self.dragging = False
+        self.drag_position = None
+        
         self.initUI()
     
     def initUI(self):
         self.setWindowTitle('液态玻璃bilibili')
-        self.setGeometry(100, 100, 1200, 700)
+        self.setFixedSize(1200, 700)
 
         # 创建中央部件
         central_widget = QWidget()
@@ -53,17 +59,22 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        # 应用亚克力效果到整个窗口 - 修改位置
+        self.acrylic_effect = AcrylicEffect(central_widget)
+        
+        # 设置内容框架为透明，让亚克力效果透出来
         self.content_frame = QFrame()
         self.content_frame.setObjectName("contentFrame")
+        self.content_frame.setStyleSheet("""
+            QFrame#contentFrame {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         content_layout = QVBoxLayout(self.content_frame)
         content_layout.setContentsMargins(40, 40, 40, 40)
         
-        # 应用亚克力效果
-        self.acrylic_effect = AcrylicEffect(self.content_frame)
-        
         main_layout.addWidget(self.content_frame)
-
-        self.acrylic_effect.set_background_image("background.jpg")  # 设置背景图片
 
         # 设置窗口图标
         self.setWindowIcon(QIcon("BilibiliIcon.ico"))
@@ -77,28 +88,36 @@ class MainWindow(QMainWindow):
         # 无边框
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-        # 设置亚克力效果参数
-        self.acrylic_effect.set_blur_radius(10)
-        self.acrylic_effect.set_brightness(0.3)
-        self.acrylic_effect.set_tint_strength(0.2)
-        self.acrylic_effect.set_noise_strength(0.15)
-        self.acrylic_effect.set_tint_color(QColor(200, 220, 255))
-    
+        # 优化亚克力效果参数 - 实现更真实的亚克力材质
+        self.acrylic_effect.set_blur_radius(25)  # 增加模糊半径
+        self.acrylic_effect.set_brightness(0.8)  # 增加亮度
+        self.acrylic_effect.set_tint_strength(0.15)  # 调整色调强度
+        self.acrylic_effect.set_noise_strength(0.08)  # 增加噪点强度
+        self.acrylic_effect.set_tint_color(QColor(245, 245, 255, 180))  # 使用更浅的半透明颜色
+        
+        # 设置窗口背景为半透明，让亚克力效果更明显
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
         # 更新功能界面
         self.update_function()
 
-        # 设置窗口最大化
-        self.showMaximized()
-
     def init_window_bar(self):
         """初始化顶部窗口栏"""
-        # 顶部窗口栏
+        # 顶部窗口栏 - 使用半透明背景
         self.windowbar = QWidget()
         self.windowbar.setObjectName("windowBar")
         self.windowbar.setFixedHeight(40)
-        self.windowbar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
+        self.windowbar.setStyleSheet("""
+            #windowBar {
+                background-color: rgba(255, 255, 255, 80);
+                border-bottom: 1px solid rgba(255, 255, 255, 60);
+            }
+        """)
         self.windowbar.setGeometry(QRect(0, 0, self.width(), 40))
         self.windowbar.setParent(self)
+        
+        # 启用鼠标跟踪
+        self.windowbar.setMouseTracking(True)
 
         # 添加logo
         self.logo = QLabel()
@@ -125,9 +144,10 @@ class MainWindow(QMainWindow):
             QPushButton#closeBtn {
                 background-color: transparent;
                 border: none;
+                border-radius: 2px;
             }
             QPushButton#closeBtn:hover {
-                background-color: rgba(255, 0, 0, 150);
+                background-color: rgba(255, 0, 0, 180);
             }
         """)
         self.closebtn.clicked.connect(self.close)
@@ -148,17 +168,31 @@ class MainWindow(QMainWindow):
             QPushButton#minBtn {
                 background-color: transparent;
                 border: none;
+                border-radius: 2px;
             }
             QPushButton#minBtn:hover {
-                background-color: rgba(10, 110, 230, 150);
+                background-color: rgba(100, 100, 100, 100);
             }
         """)
         self.minbtn.clicked.connect(self.showMinimized)
 
-        # 搜索框
+        # 搜索框 - 使用亚克力风格
         self.searchbar = QLineEdit()
         self.searchbar.setObjectName("searchBar")
-        self.searchbar.setStyleSheet("background-color: rgba(200, 220, 255, 150); border-radius: 5px;")
+        self.searchbar.setStyleSheet("""
+            QLineEdit#searchBar {
+                background-color: rgba(255, 255, 255, 150);
+                border: 1px solid rgba(255, 255, 255, 100);
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-size: 14px;
+                color: #333;
+            }
+            QLineEdit#searchBar:focus {
+                background-color: rgba(255, 255, 255, 200);
+                border: 1px solid rgba(100, 150, 255, 150);
+            }
+        """)
         self.searchbar.setGeometry(QRect(500, 5, 300, 30))
         self.searchbar.setParent(self.windowbar)
         self.searchbar.setPlaceholderText("震惊！有人开发bilibili26!")
@@ -174,10 +208,15 @@ class MainWindow(QMainWindow):
 
     def init_sidebar(self):
         """初始化侧边栏"""
-        # 侧栏
+        # 侧栏 - 使用半透明背景
         self.sidebar = QWidget()
         self.sidebar.setObjectName("sidebar")
-        self.sidebar.setStyleSheet("background-color: rgba(200, 220, 255, 150);")
+        self.sidebar.setStyleSheet("""
+            #sidebar {
+                background-color: rgba(255, 255, 255, 80);
+                border-right: 1px solid rgba(255, 255, 255, 60);
+            }
+        """)
         self.sidebar.setGeometry(QRect(0, 40, 50, self.height() - 40))
         self.sidebar.setParent(self)
 
@@ -192,13 +231,18 @@ class MainWindow(QMainWindow):
         self.home.setIconSize(QSize(20, 20))
         self.home.setParent(self.sidebar)
         self.home.setGeometry(QRect(0, 0, 50, 40))
-        self.home.setStyleSheet("background-color: transparent; border: none;")
+        self.home.setStyleSheet("""
+            QPushButton#homeBtn {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         self.home.clicked.connect(lambda: self.update_function(0))
 
         # 首页文本
         self.home_text = QLabel("首页")
         self.home_text.setObjectName("homeText")
-        self.home_text.setStyleSheet("color: black; font-size: 12px; background-color: transparent;")
+        self.home_text.setStyleSheet("color: #333; font-size: 12px; background-color: transparent;")
         self.home_text.setParent(self.sidebar)
         self.home_text.setGeometry(QRect(14, 30, 30, 20))
 
@@ -213,49 +257,49 @@ class MainWindow(QMainWindow):
         self.setting.setIconSize(QSize(20, 20))
         self.setting.setParent(self.sidebar)
         self.setting.setGeometry(QRect(0, 650, 50, 40))
-        self.setting.setStyleSheet("background-color: transparent; border: none;")
+        self.setting.setStyleSheet("""
+            QPushButton#settingBtn {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         self.setting.clicked.connect(lambda: self.update_function(1))
 
         # 设置文本
         self.setting_text = QLabel("设置")
         self.setting_text.setObjectName("settingText")
-        self.setting_text.setStyleSheet("color: black; font-size: 12px; background-color: transparent;")
+        self.setting_text.setStyleSheet("color: #333; font-size: 12px; background-color: transparent;")
         self.setting_text.setParent(self.sidebar)
-        self.setting_text.setGeometry(QRect(14, 680, 30, 20))
+        self.setting_text.setGeometry(QRect(14, 670, 30, 20))
 
-        #头像
-        self.headshot = QLabel()
-        self.headshot.setGeometry(QRect(12, 600, 30, 30))
-        self.headshot.setStyleSheet("""
-            background-color: transparent;
-            border-radius: 15px;
-            border: 1px solid transparent;
-        """)
+        # 头像
+        self.headshot = CircularLabel()
+        self.headshot.setGeometry(QRect(10, 550, 30, 30))  # 调整位置使其居中
         self.headshot.setParent(self.sidebar)
+
         # 加载头像
         if GetUserInfo().get_user_info() == None:
-            self.headshot.setPixmap(QPixmap("./img/none.png").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation))
+            # 使用默认头像
+            default_pixmap = QPixmap("./img/none.png")
+            self.headshot.setPixmap(default_pixmap)
             from BilibiliLogin import BiliBiliLogin
             self.login_window = BiliBiliLogin()
             self.login_window.show()
-
         else:
+            # 下载并设置用户头像
             Download().download_user_face("./temp/face.jpg")
-            self.headshot.setPixmap(QPixmap("./temp/face.jpg").scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation))
-        self.headshot.setScaledContents(True)
-        
+            user_pixmap = QPixmap("./temp/face.jpg")
+            self.headshot.setPixmap(user_pixmap)
+            
+            # 液态玻璃蒙版
+            self.liquid_glass = LiquidGlassWidget(self)
+            self.liquid_glass.setGeometry(QRect(0, 40, 50, 60))
+            self.liquid_glass.setParent(self)
 
-
-
-        # 液态玻璃蒙版
-        self.liquid_glass = LiquidGlassWidget(self)
-        self.liquid_glass.setGeometry(QRect(0, 40, 50, 60))
-        self.liquid_glass.setParent(self)
-
-        # 添加动画
-        self.liquid_animation = QPropertyAnimation(self.liquid_glass, b"geometry")
-        self.liquid_animation.setDuration(1000)
-        self.liquid_animation.setEasingCurve(QEasingCurve.OutCubic)
+            # 添加动画
+            self.liquid_animation = QPropertyAnimation(self.liquid_glass, b"geometry")
+            self.liquid_animation.setDuration(1000)
+            self.liquid_animation.setEasingCurve(QEasingCurve.OutCubic)
 
     def init_video_controller(self):
         """初始化视频控制器"""
@@ -266,21 +310,22 @@ class MainWindow(QMainWindow):
 
     def init_refresh_button(self):
         """初始化刷新按钮"""
-        # 刷新按钮
+        # 刷新按钮 - 使用亚克力风格
         self.refresh_btn = QPushButton("", self)
         self.refresh_btn.setFixedSize(40, 40)
         self.refresh_btn.clicked.connect(self.refresh_data)
         self.refresh_btn.setStyleSheet('''
             QPushButton {
-                color: white;
-                background-color: none;
+                background-color: rgba(255, 255, 255, 150);
+                border: 1px solid rgba(255, 255, 255, 100);
                 border-radius: 15px;
                 padding: 5px 10px;
                 font-size: 13px;
                 margin-right: 10px;
             }
             QPushButton:hover { 
-                background-color: none;
+                background-color: rgba(255, 255, 255, 200);
+                border: 1px solid rgba(100, 150, 255, 150);
             }
         ''')
         
@@ -295,7 +340,6 @@ class MainWindow(QMainWindow):
         self.liquid_glass_base.setGeometry(QRect(0, 0, 40, 40))
         self.liquid_glass_base.move(self.width() - 55, self.height() - 80)
         self.refresh_btn.raise_()
-
 
     def refresh_data(self):
         """刷新数据"""
@@ -321,21 +365,21 @@ class MainWindow(QMainWindow):
             setting_icon = QPixmap("./img/setting.png")
             setting_icon = setting_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.setting.setIcon(QIcon(setting_icon))
-            self.setting_text.setStyleSheet("color: black; font-size: 12px; background-color: transparent;")
+            self.setting_text.setStyleSheet("color: #333; font-size: 12px; background-color: transparent;")
 
         elif self.functionnum == 1:
             self.setting_function()
             home_icon = QPixmap("./img/home.png")
             home_icon = home_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.home.setIcon(QIcon(home_icon))
-            self.home_text.setStyleSheet("color: black; font-size: 12px; background-color: transparent;")
+            self.home_text.setStyleSheet("color: #333; font-size: 12px; background-color: transparent;")
 
     def home_function(self):
         """首页功能"""
         home_icon = QPixmap("./img/home_start.png")
         home_icon = home_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.home.setIcon(QIcon(home_icon))
-        self.home_text.setStyleSheet("color: rgb(255,192,203); font-size: 12px; background-color: transparent;")
+        self.home_text.setStyleSheet("color: rgb(100, 150, 255); font-size: 12px; background-color: transparent;")
 
         self.liquid_animation.stop()
         self.liquid_animation.setStartValue(self.liquid_glass.geometry())
@@ -347,12 +391,18 @@ class MainWindow(QMainWindow):
         setting_icon = QPixmap("./img/setting_start.png")
         setting_icon = setting_icon.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setting.setIcon(QIcon(setting_icon))
-        self.setting_text.setStyleSheet("color: rgb(255,192,203); font-size: 12px; background-color: transparent;")
+        self.setting_text.setStyleSheet("color: rgb(100, 150, 255); font-size: 12px; background-color: transparent;")
 
         self.liquid_animation.stop()
         self.liquid_animation.setStartValue(self.liquid_glass.geometry())
         self.liquid_animation.setEndValue(QRect(0, self.sidebar.height() - 60, 50, 60))
         self.liquid_animation.start()
+
+    def showEvent(self, event):
+        """窗口显示事件 - 新增"""
+        super().showEvent(event)
+        # 延迟一点时间确保窗口已经完全显示
+        QTimer.singleShot(100, self.acrylic_effect.apply_effect)
 
     def resizeEvent(self, event):
         """窗口大小改变时更新效果"""
@@ -411,6 +461,37 @@ class MainWindow(QMainWindow):
 
         return super().closeEvent(a0)
 
+    # 添加鼠标事件处理方法
+    def mousePressEvent(self, event: QMouseEvent):
+        """鼠标按下事件"""
+        if event.button() == Qt.LeftButton:
+            # 检查是否在顶栏范围内
+            if (event.pos().y() <= 40 and 
+                event.pos().x() <= self.width() - 80):  # 排除关闭和最小化按钮区域
+                self.dragging = True
+                self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+                event.accept()
+            else:
+                super().mousePressEvent(event)
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """鼠标移动事件"""
+        if self.dragging and self.drag_position is not None:
+            self.move(event.globalPos() - self.drag_position)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        """鼠标释放事件"""
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
+            self.drag_position = None
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
 
 if __name__ == '__main__':

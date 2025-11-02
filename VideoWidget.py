@@ -226,7 +226,7 @@ class VideoWidget(QWidget):
 
     def play_video(self):
         self.video_player = VideoPlayer(bvid=self.bvid, cid=self.cid)
-        self.video_player.setGeometry(100, 100, 640, 480)
+        self.video_player.setFixedSize(740, 480)
         self.video_player.show()
 
     def update_info(self, title=None, duration=None, thumbnail_path=None, upname=None, release_time=None):
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     video_widget = VideoWidget(
         title="视频标题啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊", 
         duration=121, 
-        thumbnail_path="./temp/2025-07-27 16.31.54.png", 
+        thumbnail_path="./temp/BV1A1HPzRE3U.jpg", 
         upname="ywhdzrb", 
         release_time=1752641588
     )

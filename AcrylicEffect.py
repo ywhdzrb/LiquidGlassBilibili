@@ -108,6 +108,11 @@ class AcrylicEffect:
     
     def apply_effect(self):
         """应用亚克力效果"""
+        # 检查部件大小
+        if self.widget.size().isEmpty():
+            print("警告: 窗口大小为0，跳过亚克力效果应用")
+            return
+            
         # 创建用于亚克力效果的图像
         acrylic_img = QImage(self.widget.size(), QImage.Format_ARGB32_Premultiplied)
         acrylic_img.fill(Qt.transparent)
@@ -136,6 +141,8 @@ class AcrylicEffect:
         palette.setBrush(QPalette.Window, QBrush(acrylic_img))
         self.widget.setPalette(palette)
         self.widget.setAutoFillBackground(True)
+        
+        print("亚克力效果应用成功")
     
     def apply_gaussian_blur(self, image, radius):
         """应用高斯模糊效果"""
