@@ -159,7 +159,7 @@ class VideoWidget(QWidget):
             self.set_default_thumbnail()
 
     def set_default_thumbnail(self):
-        """设置默认缩略图"""
+        """设置默认缩略图（不触发加载）"""
         thumb_width = self.thumbnail_label.width()
         thumb_height = self.thumbnail_label.height()
         
@@ -174,7 +174,7 @@ class VideoWidget(QWidget):
         
         # 绘制播放按钮
         painter.setBrush(QColor(200, 200, 200, 180))
-        triangle_size = min(thumb_width, thumb_height) * 0.3  # 根据尺寸调整三角形大小
+        triangle_size = min(thumb_width, thumb_height) * 0.3
         x_center = thumb_width // 2
         y_center = thumb_height // 2
         from PyQt5.QtCore import QPoint
