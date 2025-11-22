@@ -10,7 +10,7 @@ import logging
 import sys
 from NetworkManager import CustomNetworkAccessManager
 from ProxyServer import MP4ProxyServer
-from GetBilibiliApi import GetVideoInfo
+from BilibiliApi import GetVideoInfo
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

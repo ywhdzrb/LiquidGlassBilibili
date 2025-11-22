@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QGridLayout, QLabel, QApplication,
                              QSizePolicy, QScrollArea, QVBoxLayout, QSpacerItem)
 from PyQt5.QtGui import QWheelEvent
 from VideoWidget import VideoWidget
-from GetBilibiliApi import *
+from BilibiliApi import *
 import os
 import threading
 
@@ -30,7 +30,7 @@ class DataLoader(threading.Thread):
             print(f"数据加载失败: {str(e)}")
             self.signals.data_failed.emit()
 
-class ThumbnailDownloader(threading.Thread):
+class CoverDownloader(threading.Thread):
     def __init__(self, pic_url, bvid, index, controller):
         super().__init__()
         self.pic_url = pic_url
@@ -41,13 +41,13 @@ class ThumbnailDownloader(threading.Thread):
     def run(self):
         try:
             save_path = f"./temp/{self.bvid}.jpg"
-            if Download().download_thumbnail(self.pic_url, save_path):
-                self.controller.thumbnail_loaded.emit(self.index, save_path)
+            if Download().download_cover(self.pic_url, save_path):
+                self.controller.cover_loaded.emit(self.index, save_path)
         except Exception as e:
-            print(f"缩略图下载失败: {str(e)}")
+            print(f"封面下载失败: {str(e)}")
 
 class VideoController(QScrollArea):
-    thumbnail_loaded = pyqtSignal(int, str)
+    cover_loaded = pyqtSignal(int, str)
     load_more_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -71,7 +71,7 @@ class VideoController(QScrollArea):
         
         self.init_ui()
         self.load_initial_data()
-        self.thumbnail_loaded.connect(self.update_thumbnail)
+        self.cover_loaded.connect(self.update_cover)
         self.load_more_requested.connect(self.load_more_data)
 
     def init_ui(self):
@@ -186,7 +186,7 @@ class VideoController(QScrollArea):
         self.is_loading_more = False
         self.load_more_widget.hide()
         
-        # 初始加载前几个视频的缩略图
+        # 初始加载前几个视频的封面
         QTimer.singleShot(100, lambda: self.schedule_lazy_load(0))
 
     def on_data_failed(self):
@@ -245,7 +245,7 @@ class VideoController(QScrollArea):
         widget = VideoWidget(
             title=info.get("title", ""),
             duration=info.get("duration", 0),
-            thumbnail_path="./img/none.png",
+            cover_path="./img/none.png",
             upname=info.get("owner", {}).get("name", ""),
             release_time=info.get("pubdate", 0),
             bvid=info.get("bvid", ""),
@@ -293,14 +293,14 @@ class VideoController(QScrollArea):
         self.load_timer.start(50)
 
     def process_pending_loads(self):
-        """处理待加载的缩略图"""
+        """处理待加载的封面"""
         if not self.pending_loads:
             return
             
         for index in list(self.pending_loads):
             if index < len(self.video_info):
                 info = self.video_info[index]
-                thread = ThumbnailDownloader(
+                thread = CoverDownloader(
                     pic_url=info["pic"],
                     bvid=info["bvid"],
                     index=index,
@@ -311,10 +311,10 @@ class VideoController(QScrollArea):
                 self.loaded_indices.add(index)
                 self.pending_loads.remove(index)
 
-    def update_thumbnail(self, index, path):
-        """更新缩略图"""
+    def update_cover(self, index, path):
+        """更新封面"""
         if self._is_alive and index < len(self.video_widgets):
-            self.video_widgets[index].update_info(thumbnail_path=path)
+            self.video_widgets[index].update_info(cover_path=path)
 
     def scrollEvent(self, event):
         """滚动事件处理"""

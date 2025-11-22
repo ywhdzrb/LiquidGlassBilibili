@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (QApplication,
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
 from VideoController import VideoController
-from GetBilibiliApi import *
+from BilibiliApi import *
 from CircularLabel import CircularLabel
 
 
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
 
         # 应用亚克力效果到整个窗口 - 修改位置
         self.acrylic_effect = AcrylicEffect(central_widget)
+        self.acrylic_effect.set_enable_rounded_corners(True)
         
         # 设置内容框架为透明，让亚克力效果透出来
         self.content_frame = QFrame()
@@ -115,6 +116,8 @@ class MainWindow(QMainWindow):
             #windowBar {
                 background-color: rgba(255, 255, 255, 80);
                 border-bottom: 1px solid rgba(255, 255, 255, 60);
+                border-top-left-radius: 20px;
+                border-top-right-radius: 20px;
             }
         """)
         self.windowbar.setGeometry(QRect(0, 0, self.width(), 40))
@@ -143,12 +146,12 @@ class MainWindow(QMainWindow):
         self.closebtn.setIcon(QIcon(close_icon))
         self.closebtn.setIconSize(QSize(20, 20))
         self.closebtn.setParent(self.windowbar)
-        self.closebtn.setGeometry(QRect(1325, 0, 40, 40))
+        self.closebtn.setGeometry(QRect(self.width() - 40, 0, 40, 40))
         self.closebtn.setStyleSheet("""
             QPushButton#closeBtn {
                 background-color: transparent;
                 border: none;
-                border-radius: 2px;
+                border-radius: 20px;
             }
             QPushButton#closeBtn:hover {
                 background-color: rgba(255, 0, 0, 180);
@@ -167,12 +170,12 @@ class MainWindow(QMainWindow):
         self.minbtn.setIcon(QIcon(min_icon))
         self.minbtn.setIconSize(QSize(20, 20))
         self.minbtn.setParent(self.windowbar)
-        self.minbtn.setGeometry(QRect(1285, 0, 40, 40))
+        self.minbtn.setGeometry(QRect(self.width() - 80, 0, 40, 40))
         self.minbtn.setStyleSheet("""
             QPushButton#minBtn {
                 background-color: transparent;
                 border: none;
-                border-radius: 2px;
+                border-radius: 20px;
             }
             QPushButton#minBtn:hover {
                 background-color: rgba(100, 100, 100, 100);
@@ -219,10 +222,13 @@ class MainWindow(QMainWindow):
             #sidebar {
                 background-color: rgba(255, 255, 255, 80);
                 border-right: 1px solid rgba(255, 255, 255, 60);
+                border-top-left-radius: 0px;
+                border-bottom-left-radius: 20px;
             }
         """)
         self.sidebar.setGeometry(QRect(0, 40, 50, self.height() - 40))
         self.sidebar.setParent(self)
+        
 
         # 首页按钮
         self.home = QPushButton()

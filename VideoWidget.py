@@ -12,12 +12,12 @@ from VideoPlayer import VideoPlayer
 class VideoWidget(QWidget):
     clicked = pyqtSignal()
     
-    def __init__(self, parent=None, title="", duration=0, thumbnail_path="./img/none.png", upname="", release_time=0, bvid=None, cid=None):
+    def __init__(self, parent=None, title="", duration=0, cover_path="./img/none.png", upname="", release_time=0, bvid=None, cid=None):
         super().__init__(parent)
 
         self.title = title
         self.duration = duration
-        self.thumbnail_path = thumbnail_path
+        self.cover_path = cover_path
         self.upname = upname
         self.bvid = bvid
         self.cid = cid
@@ -49,9 +49,9 @@ class VideoWidget(QWidget):
         # 液态玻璃底板
         self.liquid_glass = LiquidGlassWidget(self)
 
-        # 视频缩略图标签
-        self.thumbnail_label = QLabel(self)
-        self.thumbnail_label.setAlignment(Qt.AlignCenter)  # 居中对齐
+        # 视频封面标签
+        self.cover_label = QLabel(self)
+        self.cover_label.setAlignment(Qt.AlignCenter)  # 居中对齐
         
         # 视频标题标签
         self.title_label = QLabel(self)
@@ -111,11 +111,11 @@ class VideoWidget(QWidget):
         # 液态玻璃底板 - 占满整个widget
         self.liquid_glass.setGeometry(0, 0, self.width(), self.height())
         
-        # 缩略图标签 - 相对位置计算
+        # 封面标签 - 相对位置计算
         thumb_x, thumb_y, thumb_w, thumb_h = self.calculate_scaled_geometry(
             0.05, 0.095, 0.9, 0.714  # 原位置：15,20,270,150 → 比例：0.05,0.095,0.9,0.714
         )
-        self.thumbnail_label.setGeometry(thumb_x, thumb_y, thumb_w, thumb_h)
+        self.cover_label.setGeometry(thumb_x, thumb_y, thumb_w, thumb_h)
         
         # 标题标签
         title_x, title_y, title_w, title_h = self.calculate_scaled_geometry(
@@ -135,33 +135,33 @@ class VideoWidget(QWidget):
         )
         self.upname_label.setGeometry(up_x, up_y, up_w, up_h)
         
-        # 重新加载缩略图以适应新尺寸
-        self.load_thumbnail()
+        # 重新加载封面以适应新尺寸
+        self.load_cover()
 
-    def load_thumbnail(self):
-        """加载并显示缩略图"""
-        if os.path.exists(self.thumbnail_path):
+    def load_cover(self):
+        """加载并显示封面"""
+        if os.path.exists(self.cover_path):
             try:
                 # 加载原始图片
-                original_pixmap = QPixmap(self.thumbnail_path)
+                original_pixmap = QPixmap(self.cover_path)
                 if not original_pixmap.isNull():
-                    # 创建圆角缩略图，使用当前缩略图标签的尺寸
-                    thumb_width = self.thumbnail_label.width()
-                    thumb_height = self.thumbnail_label.height()
-                    rounded_pixmap = self.create_rounded_thumbnail(original_pixmap, thumb_width, thumb_height, 10)
-                    self.thumbnail_label.setPixmap(rounded_pixmap)
+                    # 创建圆角封面，使用当前封面标签的尺寸
+                    thumb_width = self.cover_label.width()
+                    thumb_height = self.cover_label.height()
+                    rounded_pixmap = self.create_rounded_cover(original_pixmap, thumb_width, thumb_height, 10)
+                    self.cover_label.setPixmap(rounded_pixmap)
                 else:
-                    self.set_default_thumbnail()
+                    self.set_default_cover()
             except Exception as e:
-                print(f"加载缩略图失败: {e}")
-                self.set_default_thumbnail()
+                print(f"加载封面失败: {e}")
+                self.set_default_cover()
         else:
-            self.set_default_thumbnail()
+            self.set_default_cover()
 
-    def set_default_thumbnail(self):
-        """设置默认缩略图（不触发加载）"""
-        thumb_width = self.thumbnail_label.width()
-        thumb_height = self.thumbnail_label.height()
+    def set_default_cover(self):
+        """设置默认封面（不触发加载）"""
+        thumb_width = self.cover_label.width()
+        thumb_height = self.cover_label.height()
         
         default_pixmap = QPixmap(thumb_width, thumb_height)
         default_pixmap.fill(QColor(60, 60, 60))  # 深灰色背景
@@ -186,10 +186,10 @@ class VideoWidget(QWidget):
         painter.drawPolygon(*points)
         painter.end()
         
-        self.thumbnail_label.setPixmap(default_pixmap)
+        self.cover_label.setPixmap(default_pixmap)
 
-    def create_rounded_thumbnail(self, pixmap, width, height, radius):
-        """创建圆角缩略图"""
+    def create_rounded_cover(self, pixmap, width, height, radius):
+        """创建圆角封面"""
         # 计算缩放比例，保持宽高比
         scaled_pixmap = pixmap.scaled(
             width, height, 
@@ -232,7 +232,7 @@ class VideoWidget(QWidget):
         self.video_player.setFixedSize(740, 480)
         self.video_player.show()
 
-    def update_info(self, title=None, duration=None, thumbnail_path=None, upname=None, release_time=None):
+    def update_info(self, title=None, duration=None, cover_path=None, upname=None, release_time=None):
         """更新视频信息"""
         if title is not None:
             self.title = title
@@ -262,9 +262,9 @@ class VideoWidget(QWidget):
             else:
                 self.relative_time_str = time.strftime("%Y-%m-%d", time.localtime(self.release_time))
 
-        if thumbnail_path is not None:
-            self.thumbnail_path = thumbnail_path
-            self.load_thumbnail()
+        if cover_path is not None:
+            self.cover_path = cover_path
+            self.load_cover()
 
         # 更新UP主信息
         self.upname_label.setText(f"UP: {self.upname} · {self.relative_time_str}")
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     video_widget = VideoWidget(
         title="视频标题啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊", 
         duration=121, 
-        thumbnail_path="./temp/BV1A1HPzRE3U.jpg", 
+        cover_path="./temp/BV1A1HPzRE3U.jpg", 
         upname="ywhdzrb", 
         release_time=1752641588
     )

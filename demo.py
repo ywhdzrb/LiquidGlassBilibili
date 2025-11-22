@@ -139,7 +139,7 @@ class VideoPlayer(QMainWindow):
     def load_video_from_bilibili(self, bvid, cid):
         """从B站加载视频"""
         try:
-            from GetBilibiliApi import GetVideoInfo
+            from BilibiliApi import GetVideoInfo
             
             # 获取视频信息
             video_info = GetVideoInfo(bvid, cid)
