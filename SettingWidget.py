@@ -678,8 +678,8 @@ class SettingWidget(QScrollArea):
         info_text = """
         <div style="color: white; font-size: 11px; line-height: 1.6;">
         <p><b>液态玻璃Bilibili客户端</b></p>
-        <p>版本: 1.0.0</p>
-        <p>开发者: Liquid Glass Team</p>
+        <p>版本: 0.0.1</p>
+        <p>开发者: ywhdzrb</p>
         <p>描述: 基于PyQt5开发的Bilibili客户端，具有亚克力玻璃效果界面</p>
         <p>功能特性:</p>
         <ul>
