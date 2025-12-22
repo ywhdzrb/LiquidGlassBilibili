@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (QApplication,
 from AcrylicEffect import AcrylicEffect
 from LiquidGlassWidget import LiquidGlassWidget
 from VideoController import VideoController
+from SettingWidget import SettingWidget  # 新增导入
 from BilibiliApi import *
 from CircularLabel import CircularLabel
 
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         self.init_window_bar()
         self.init_sidebar()
         self.init_video_controller()
+        self.init_setting_widget()  # 新增：初始化设置界面
         self.init_refresh_button()
 
         # 无边框
@@ -318,6 +320,18 @@ class MainWindow(QMainWindow):
         self.video_controller.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
         self.video_controller.setParent(self)
 
+    def init_setting_widget(self):
+        """初始化设置界面"""
+        # 设置界面
+        self.setting_widget = SettingWidget(self)
+        self.setting_widget.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
+        self.setting_widget.setParent(self)
+        self.setting_widget.hide()
+        
+        # 连接设置变化信号
+        self.setting_widget.settings_changed.connect(self.on_settings_changed)
+        self.setting_widget.apply_now.connect(self.return_to_home)
+
     def init_refresh_button(self):
         """初始化刷新按钮"""
         # 刷新按钮 - 使用亚克力风格
@@ -350,6 +364,57 @@ class MainWindow(QMainWindow):
         self.liquid_glass_base.setGeometry(QRect(0, 0, 40, 40))
         self.liquid_glass_base.move(self.width() - 55, self.height() - 80)
         self.refresh_btn.raise_()
+
+    def on_settings_changed(self, settings):
+        """处理设置变化"""
+        # 更新亚克力效果
+        if "blur_radius" in settings:
+            self.acrylic_effect.set_blur_radius(settings["blur_radius"])
+        
+        if "brightness" in settings:
+            # 亮度值转换
+            if isinstance(settings["brightness"], int):
+                brightness = settings["brightness"] / 100.0
+            else:
+                brightness = settings["brightness"]
+            self.acrylic_effect.set_brightness(brightness)
+        
+        if "tint_strength" in settings:
+            # 色调强度转换
+            if isinstance(settings["tint_strength"], int):
+                tint_strength = settings["tint_strength"] / 100.0
+            else:
+                tint_strength = settings["tint_strength"]
+            self.acrylic_effect.set_tint_strength(tint_strength)
+        
+        if "tint_color" in settings:
+            self.acrylic_effect.set_tint_color(settings["tint_color"])
+        
+        if "noise_strength" in settings:
+            # 噪声强度转换
+            if isinstance(settings["noise_strength"], int):
+                noise_strength = settings["noise_strength"] / 100.0
+            else:
+                noise_strength = settings["noise_strength"]
+            self.acrylic_effect.set_noise_strength(noise_strength)
+        
+        if "rounded_corners" in settings:
+            self.acrylic_effect.set_enable_rounded_corners(settings["rounded_corners"])
+        
+        # 应用其他设置（可以后续实现）
+        if "default_volume" in settings and hasattr(self, 'video_player'):
+            # 更新视频播放器默认音量
+            pass
+        
+        if "hardware_acceleration" in settings:
+            # 硬件加速设置
+            pass
+        
+        if "theme" in settings:
+            # 主题设置
+            pass
+        
+        print(f"设置已更新")
 
     def refresh_data(self):
         """刷新数据"""
@@ -395,6 +460,11 @@ class MainWindow(QMainWindow):
         self.liquid_animation.setStartValue(self.liquid_glass.geometry())
         self.liquid_animation.setEndValue(QRect(0, 40, 50, 60))
         self.liquid_animation.start()
+        
+        # 显示视频控制器，隐藏设置界面
+        self.video_controller.show()
+        self.setting_widget.hide()
+        self.refresh_btn.show()
 
     def setting_function(self):
         """设置功能"""
@@ -407,6 +477,15 @@ class MainWindow(QMainWindow):
         self.liquid_animation.setStartValue(self.liquid_glass.geometry())
         self.liquid_animation.setEndValue(QRect(0, self.sidebar.height() - 60, 50, 60))
         self.liquid_animation.start()
+        
+        # 显示设置界面，隐藏视频控制器
+        self.setting_widget.show()
+        self.video_controller.hide()
+        self.refresh_btn.hide()
+
+    def return_to_home(self):
+        """从设置界面返回到首页"""
+        self.update_function(0)
 
     def showEvent(self, event):
         """窗口显示事件 - 新增"""
@@ -449,15 +528,16 @@ class MainWindow(QMainWindow):
         # 更新亚克力效果
         self.acrylic_effect.apply_effect()
         
+        # 更新视频控制器和设置界面的尺寸
+        self.video_controller.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
+        self.setting_widget.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
+        
         # 更新功能界面
         if self.functionnum == 1:
             self.setting_function()
         else:
             self.home_function()
         
-        # 更新视频控制器
-        self.video_controller.setGeometry(QRect(40, 40, self.width() - 50, self.height() - 50))
-
         # 更新刷新按钮位置
         self.refresh_btn.move(self.width() - 50, self.height() - 80)
         self.liquid_glass_base.move(self.width() - 55, self.height() - 80)
